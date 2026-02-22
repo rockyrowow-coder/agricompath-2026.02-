@@ -1433,16 +1433,16 @@ export default function App() {
       {showPostMenu && (
         <div className="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm animate-fade-in touch-none">
           {/* Menu Container */}
-          <div className="absolute w-full" style={{ bottom: '70px', height: '300px' }}>
+          <div className="absolute inset-0">
 
             {/* Central Button */}
             <div
               className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-              style={{ left: '50%', bottom: '20px', transform: 'translateX(-50%)' }}
+              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 24px)', transform: 'translateX(-50%)' }}
               onClick={() => setShowPostMenu(false)}
             >
               <button
-                className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
+                className="w-[68px] h-[68px] bg-white rounded-full flex items-center justify-center shadow-[0_0_25px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
               >
                 <X className="w-8 h-8 text-emerald-600" />
               </button>
@@ -1451,15 +1451,14 @@ export default function App() {
             {/* Surrounding Buttons (Semi-circle) */}
             {[
               { label: '写真投稿', icon: Camera, angle: 180, type: 'photo' },
-              { label: 'アルバム', icon: Images, angle: 216, type: 'album' },
-              { label: '資材レビュー', icon: Star, angle: 252, type: 'review' },
-              { label: 'ブログ', icon: PenTool, angle: 288, type: 'blog' },
-              { label: 'つぶやき', icon: MessageSquare, angle: 324, type: 'tweet' },
-              { label: '収穫記錄', icon: Tractor, angle: 360, type: 'harvest' },
-              // { label: '作業日誌', icon: ClipboardList, angle: 180, type: 'diary' },
+              { label: 'アルバム', icon: Images, angle: 144, type: 'album' },
+              { label: '資材レビュー', icon: Star, angle: 108, type: 'review' },
+              { label: 'ブログ', icon: PenTool, angle: 72, type: 'blog' },
+              { label: 'つぶやき', icon: MessageSquare, angle: 36, type: 'tweet' },
+              { label: '収穫記錄', icon: Tractor, angle: 0, type: 'harvest' },
             ].map((item, index) => {
-              const radius = 130; // 半径(px) - recordボタンからの距離
-              const angleRad = (item.angle - 90) * (Math.PI / 180); // 180(左) ~ 360(右)の半円になるよう調整
+              const radius = 135; // 半径(px)
+              const angleRad = item.angle * (Math.PI / 180);
               const x = Math.cos(angleRad) * radius;
               const y = Math.sin(angleRad) * radius;
               return (
@@ -1467,20 +1466,20 @@ export default function App() {
                   key={index}
                   className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
                   style={{
-                    left: `calc(50 % + ${x}px)`,
-                    bottom: `calc(52px - ${y}px)`, // 基準点はXボタン（bottom20＋高さの半分）
+                    left: `calc(50% + ${x}px)`,
+                    bottom: `calc(env(safe-area-inset-bottom, 20px) + 58px + ${y}px)`, // 基準点はXボタン
                     transform: 'translate(-50%, 50%)',
-                    animationDelay: `${index * 0.05} s`,
+                    animationDelay: `${index * 0.05}s`,
                     animationFillMode: 'both'
                   }}
                 >
                   <button
                     onClick={() => handleMenuClick(item.type)}
-                    className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
+                    className="w-[60px] h-[60px] bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform"
                   >
-                    <item.icon className="w-6 h-6 text-emerald-600" />
+                    <item.icon className="w-7 h-7 text-emerald-600" />
                   </button>
-                  <span className="text-[10px] font-bold text-white mt-1.5 drop-shadow-md whitespace-nowrap">{item.label}</span>
+                  <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-md whitespace-nowrap">{item.label}</span>
                 </div>
               )
             })}
@@ -1490,51 +1489,51 @@ export default function App() {
 
       {/* --- BOTTOM NAVIGATION --- */}
       {!selectedPost && (
-        <nav className="bg-white border-t border-stone-200 px-2 py-2 flex justify-around items-center z-10 safe-area-bottom">
+        <nav className="bg-white border-t border-stone-200 px-2 py-3 flex justify-around items-center z-10 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex - col items - center p - 2 transition - colors ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'} `}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Home className="w-6 h-6 mb-1" />
-            <span className="text-[10px] font-bold">ホーム</span>
+            <Home className="w-7 h-7 mb-1" />
+            <span className="text-[11px] font-bold">ホーム</span>
           </button>
 
           <button
             onClick={() => setActiveTab('community')}
-            className={`flex flex - col items - center p - 2 transition - colors ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'} `}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Users className="w-6 h-6 mb-1" />
-            <span className="text-[10px] font-bold">コミュニティ</span>
+            <Users className="w-7 h-7 mb-1" />
+            <span className="text-[11px] font-bold">コミュニティ</span>
           </button>
 
           {/* Floating Action Button for Record (Post Menu Trigger) */}
-          <div className="relative -top-5 px-2">
+          <div className="relative -top-8 px-2 flex flex-col items-center">
             <button
               id="record-button"
               onClick={() => setShowPostMenu(true)}
-              className={`w - 14 h - 14 rounded - full shadow - xl flex items - center justify - center border - 4 border - stone - 100 transition - all transform active: scale - 90 bg - emerald - 500 text - white`}
+              className="w-[68px] h-[68px] rounded-full shadow-xl flex items-center justify-center border-[6px] border-stone-50 transition-transform active:scale-90 bg-emerald-500 text-white"
             >
               <Plus className="w-8 h-8" />
             </button>
-            <span className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 text-[10px] font-bold transition-colors w-full text-center text-stone-400">
+            <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-[11px] font-bold transition-colors w-full text-center text-stone-500">
               記録
             </span>
           </div>
 
           <button
             onClick={() => setActiveTab('search')}
-            className={`flex flex - col items - center p - 2 transition - colors ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'} `}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Search className="w-6 h-6 mb-1" />
-            <span className="text-[10px] font-bold">検索</span>
+            <Search className="w-7 h-7 mb-1" />
+            <span className="text-[11px] font-bold">検索</span>
           </button>
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex flex - col items - center p - 2 transition - colors ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'} `}
+            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <User className="w-6 h-6 mb-1" />
-            <span className="text-[10px] font-bold">マイページ</span>
+            <User className="w-7 h-7 mb-1" />
+            <span className="text-[11px] font-bold">マイページ</span>
           </button>
         </nav>
       )}
