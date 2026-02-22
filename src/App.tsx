@@ -961,6 +961,30 @@ export default function App() {
 
             {homeTab === 'recommended' && (
               <>
+                {/* Highlights - フォロー中の写真ストーリー */}
+                <div className="px-4 mb-2">
+                  <h3 className="font-bold text-stone-700 text-sm mb-3 flex items-center gap-1.5"><Flame className="w-4 h-4 text-orange-500" />ハイライト</h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                    {[{ name: '田中農園', img: 'https://images.unsplash.com/photo-1535713875002-d1d0cfdfeeab?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1592982537447-6f2a6a0c0fbd?q=80&w=200&auto=format&fit=crop' },
+                    { name: '鈴木ファーム', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=200&auto=format&fit=crop' },
+                    { name: '山田農園', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=200&auto=format&fit=crop' },
+                    { name: '佐藤ファーム', img: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=200&auto=format&fit=crop' },
+                    ].map((u, i) => (
+                      <button key={i} className="flex flex-col items-center min-w-[68px] group">
+                        <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 mb-1">
+                          <img src={u.img} className="w-full h-full rounded-full object-cover border-2 border-white" alt="" />
+                        </div>
+                        <span className="text-[10px] font-bold text-stone-600 truncate w-full text-center">{u.name}</span>
+                      </button>
+                    ))}
+                    <button className="flex flex-col items-center min-w-[68px]">
+                      <div className="w-16 h-16 rounded-full bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center mb-1">
+                        <Plus className="w-6 h-6 text-stone-400" />
+                      </div>
+                      <span className="text-[10px] font-bold text-stone-400">もっと見る</span>
+                    </button>
+                  </div>
+                </div>
                 {/* 今日のおすすめ (Horizontal Scroll) */}
                 <div className="bg-white p-4 pb-6 shadow-sm border-b border-stone-100">
                   <div className="flex items-center gap-2 mb-3">
@@ -1273,7 +1297,7 @@ export default function App() {
 
         {/* POST FORM VIEW (Record) */}
         {activeTab === 'record' && (
-          <div className="p-4 h-full flex flex-col">
+          <div className="p-4 pb-32 h-full flex flex-col overflow-y-auto">
             {isSubmitting ? (
               <div className="flex-1 flex flex-col items-center justify-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mb-4"></div>
@@ -1547,25 +1571,41 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Free Text (Placeholder changes by mode) */}
-                <div className="relative">
-                  <div className="flex justify-between items-center mb-1">
-                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide">
-                      {postMode === 'review' ? 'レビュー・メモ' : '投稿内容'}
-                    </label>
-                    <button type="button" className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full transition-colors leading-none">
-                      <Mic className="w-3 h-3" /> 音声入力
-                    </button>
+                {/* Photo Caption (for photo mode) */}
+                {postMode === 'photo' && photoPreview && (
+                  <div className="animate-pop-in">
+                    <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">キャプション</label>
+                    <input
+                      type="text"
+                      value={postText}
+                      onChange={(e) => setPostText(e.target.value)}
+                      placeholder="写真にキャプションを添えましょう..."
+                      className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
+                    />
                   </div>
-                  <textarea
-                    value={reviewText}
-                    onChange={(e) => setReviewText(e.target.value)}
-                    rows={4}
-                    required={postMode !== 'photo' && postMode !== 'album'}
-                    placeholder={postMode === 'review' ? "【書き方の例】\n・対象：アブラムシ\n・結果：散布翌日には全滅。\n・注意点：匂いが少しキツイ。" : "詳細や気づいたことなどを自由に書いてみましょう。"}
-                    className="w-full p-4 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm leading-relaxed shadow-sm resize-none"
-                  ></textarea>
-                </div>
+                )}
+
+                {/* Free Text (Placeholder changes by mode) */}
+                {postMode !== 'photo' && (
+                  <div className="relative">
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide">
+                        {postMode === 'review' ? 'レビュー・メモ' : '投稿内容'}
+                      </label>
+                      <button type="button" className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full transition-colors leading-none">
+                        <Mic className="w-3 h-3" /> 音声入力
+                      </button>
+                    </div>
+                    <textarea
+                      value={reviewText}
+                      onChange={(e) => setReviewText(e.target.value)}
+                      rows={4}
+                      required={postMode !== 'photo' && postMode !== 'album'}
+                      placeholder={postMode === 'review' ? "【書き方の例】\n・対象：アブラムシ\n・結果：散布翌日には全滅。\n・注意点：匂いが少しキツイ。" : "詳細や気づいたことなどを自由に書いてみましょう。"}
+                      className="w-full p-4 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none text-sm leading-relaxed shadow-sm resize-none"
+                    ></textarea>
+                  </div>
+                )}
 
                 {/* Visibility Settings */}
                 <div className="pt-2 animate-pop-in">
