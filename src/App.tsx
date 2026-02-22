@@ -126,18 +126,26 @@ const COMMUNITIES = [
 ];
 
 const MOCK_MATERIALS = [
-  { name: 'マラソン乳剤', category: '農薬', target: '害虫' },
-  { name: 'アファーム乳剤', category: '農薬', target: '害虫' },
-  { name: 'ダコニール1000', category: '農薬', target: '病気' },
-  { name: 'ベンレート水和剤', category: '農薬', target: '病気' },
-  { name: 'ラウンドアップ', category: '農薬', target: '雑草' },
-  { name: 'マイガーデンベジフル', category: '肥料', target: '元肥' },
-  { name: 'マグァンプK', category: '肥料', target: '元肥' },
-  { name: 'ハイポネックス原液', category: '肥料', target: '追肥' },
-  { name: 'ペンタキープSuper', category: '肥料', target: '葉面散布' },
-  { name: '桃太郎（トマト）', category: '種苗', target: '夏秋' },
-  { name: 'みさき（キャベツ）', category: '種苗', target: '春まき' },
-  { name: '防草シート', category: 'その他', target: '資材' },
+  { id: 1, name: 'ダコニール1000', category: '殺虫剤', rating: 4.5 },
+  { id: 2, name: 'スミチオン水和剤', category: '殺菌剤', rating: 4.2 },
+  { id: 3, name: 'ベストガード粒剤', category: '殺虫剤', rating: 3.8 },
+  { id: 4, name: 'ストロビーフロアブル', category: '殺虫剤', rating: 4.6 },
+  { id: 5, name: 'トレボン乳剤', category: '殺菌剤', rating: 4.0 },
+  { id: 6, name: 'アミスター20フロアブル', category: '殺虫剤', rating: 4.3 },
+  { id: 7, name: 'オルトラン水和剤', category: '殺菌剤', rating: 3.9 },
+  { id: 8, name: 'マインフレッシュ粒剤', category: '肥料', rating: 4.1 },
+  { id: 9, name: 'ハイポネックス口匠', category: '肥料', rating: 4.7 },
+  { id: 10, name: 'ネキリンエース水和剤', category: '殺虫剤', rating: 4.4 },
+  { id: 11, name: 'プレバソンフロアブル5', category: '殺虫剤', rating: 4.8 },
+  { id: 12, name: 'ランマンフロアブル', category: '殺菌剤', rating: 4.0 },
+  { id: 13, name: 'スコア額剤フロアブル', category: '殺虫剤', rating: 4.5 },
+  { id: 14, name: 'ZZボルドー水和剤', category: '殺菌剤', rating: 3.7 },
+  { id: 15, name: 'スターナ9', category: '除草剤', rating: 4.2 },
+  { id: 16, name: 'ラウンドアップマックスロード', category: '除草剤', rating: 4.6 },
+  { id: 17, name: 'バスタード液剤', category: '除草剤', rating: 3.5 },
+  { id: 18, name: 'くみあい防虫ネット', category: '資材', rating: 4.3 },
+  { id: 19, name: 'タキイ種頻交配', category: '種苗', rating: 4.9 },
+  { id: 20, name: 'ヨヒサンビックリー', category: '肥料', rating: 4.0 },
 ];
 
 const TARGET_TAGS: Record<string, string[]> = {
@@ -2309,24 +2317,24 @@ export default function App() {
             {/* Menu Container */}
             <div className="absolute inset-0">
 
-              {/* Central Button (Photo Post) - TRUE CENTER */}
+              {/* Central Button (Photo Post) - CENTER OF RING */}
               <div
                 className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-                style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
+                style={{ left: '50%', bottom: '200px', transform: 'translate(-50%, 50%)' }}
                 onClick={() => handleMenuClick('photo')}
               >
                 <button
-                  className="w-[102px] h-[102px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.5)] border-[5px] border-white hover:scale-105 active:scale-95 transition-transform"
+                  className="w-[90px] h-[90px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.5)] border-[5px] border-white hover:scale-105 active:scale-95 transition-transform"
                 >
-                  <Camera className="w-10 h-10 text-white mb-1" />
-                  <span className="text-[11px] font-bold text-white leading-none">写真で記録</span>
+                  <Camera className="w-9 h-9 text-white mb-0.5" />
+                  <span className="text-[10px] font-bold text-white leading-none">写真で記録</span>
                 </button>
               </div>
 
-              {/* Close Button (Bottom of Screen) */}
+              {/* Close Button (Bottom) */}
               <div
                 className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-                style={{ left: '50%', bottom: '40px', transform: 'translate(-50%, 0)' }}
+                style={{ left: '50%', bottom: '30px', transform: 'translate(-50%, 0)' }}
                 onClick={() => setShowPostMenu(false)}
               >
                 <button
@@ -2337,7 +2345,7 @@ export default function App() {
                 <span className="text-[10px] font-medium text-white mt-1 opacity-70">閉じる</span>
               </div>
 
-              {/* Surrounding Buttons (5 items, 72° apart) */}
+              {/* Surrounding Buttons (5 items, 72° apart) - orbiting around bottom:200px center */}
               {[
                 { label: '資材レビュー', icon: Star, angle: 90, type: 'review' },
                 { label: 'アルバム', icon: Images, angle: 162, type: 'album' },
@@ -2355,17 +2363,17 @@ export default function App() {
                     className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
                     style={{
                       left: `calc(50% + ${x}px)`,
-                      top: `calc(50% - ${y}px)`,
-                      transform: 'translate(-50%, -50%)',
+                      bottom: `calc(200px + ${y}px)`,
+                      transform: 'translate(-50%, 50%)',
                       animationDelay: `${index * 0.06}s`,
                       animationFillMode: 'both'
                     }}
                   >
                     <button
                       onClick={() => handleMenuClick(item.type)}
-                      className="w-[72px] h-[72px] bg-gradient-to-b from-white to-stone-50 rounded-full flex items-center justify-center shadow-[0_6px_24px_rgba(0,0,0,0.18)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105 border-2 border-white/80"
+                      className="w-[68px] h-[68px] bg-gradient-to-b from-white to-stone-50 rounded-full flex items-center justify-center shadow-[0_6px_24px_rgba(0,0,0,0.18)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105 border-2 border-white/80"
                     >
-                      <item.icon className="w-8 h-8 text-emerald-600" />
+                      <item.icon className="w-7 h-7 text-emerald-600" />
                     </button>
                     <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] whitespace-nowrap">{item.label}</span>
                   </div>
