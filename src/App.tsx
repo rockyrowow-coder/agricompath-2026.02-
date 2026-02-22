@@ -205,6 +205,11 @@ export default function App() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showPostMenu, setShowPostMenu] = useState(false);
 
+  // UI Ext State
+  const [searchTab, setSearchTab] = useState('materials'); // 'materials', 'farmers'
+  const [reviewTiming, setReviewTiming] = useState('');
+  const [reviewTemp, setReviewTemp] = useState('');
+
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
   // const [selectedCommunity, setSelectedCommunity] = useState(null);
@@ -649,7 +654,10 @@ export default function App() {
 
             {/* Timeline */}
             <div className="p-4 space-y-4 pt-0">
-              <h2 className="font-bold text-stone-700 mb-2">新着タイムライン</h2>
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-5 h-5 text-yellow-500 fill-current" />
+                <h2 className="font-bold text-stone-700">おすすめの投稿</h2>
+              </div>
               {posts.map((post) => (
                 <div
                   key={post.id}
@@ -740,7 +748,7 @@ export default function App() {
         {/* COMMUNITY VIEW */}
         {activeTab === 'community' && !selectedPost && (
           <div className="h-full flex flex-col">
-            <div className="p-4 bg-white border-b border-stone-100 sticky top-0 z-10">
+            <div className="p-4 bg-white border-b border-stone-100 sticky top-0 z-10 pb-0">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold text-lg text-stone-800">コミュニティ</h2>
                 <button className="text-emerald-600 text-sm font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
@@ -749,17 +757,26 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Community Sub Tabs */}
-              <div className="flex bg-stone-100 p-1 rounded-xl">
+              {/* Community Sub Tabs (Scrollable) */}
+              <div className="flex gap-4 overflow-x-auto no-scrollbar pt-1">
                 <button
-                  onClick={() => setCommunityTab('timeline')}
-                  className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${communityTab === 'timeline' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                  onClick={() => setCommunityTab('following')}
+                  className={`whitespace-nowrap pb-3 text-sm font-bold text-center border-b-2 transition-all ${communityTab === 'following' ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
                 >
-                  タイムライン
+                  フォロー中
                 </button>
+                {COMMUNITIES.map(comm => (
+                  <button
+                    key={comm.id}
+                    onClick={() => setCommunityTab(`comm_${comm.id}`)}
+                    className={`whitespace-nowrap pb-3 text-sm font-bold text-center border-b-2 transition-all flex items-center gap-1 ${communityTab === `comm_${comm.id}` ? 'border-emerald-600 text-emerald-700' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
+                  >
+                    <span>{comm.active ? '🔥' : '🌱'}</span> {comm.name}
+                  </button>
+                ))}
                 <button
                   onClick={() => setCommunityTab('manage')}
-                  className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${communityTab === 'manage' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                  className={`whitespace-nowrap pb-3 text-sm font-bold text-center border-b-2 transition-all flex items-center gap-1 ${communityTab === 'manage' ? 'border-stone-600 text-stone-700' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
                 >
                   管理
                 </button>
@@ -767,12 +784,12 @@ export default function App() {
             </div>
 
             <div className="p-4 space-y-4">
-              {communityTab === 'timeline' ? (
-                /* Timeline View for Communities */
+              {communityTab !== 'manage' ? (
+                /* Timeline View for Followings or Specific Community */
                 <div className="space-y-4">
                   <h3 className="text-sm font-bold text-stone-500 flex items-center gap-1">
                     <MessageSquare className="w-4 h-4" />
-                    参加中のコミュニティの最新投稿
+                    {communityTab === 'following' ? 'フォロー中の最新投稿' : 'このコミュニティの最新投稿'}
                   </h3>
                   {posts.filter(p => true).slice(0, 5).map((post) => (
                     <div key={`comm-post-${post.id}`} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 cursor-pointer hover:shadow-md transition-shadow" onClick={() => handlePostClick(post)}>
@@ -842,47 +859,65 @@ export default function App() {
 
         {/* SEARCH VIEW */}
         {activeTab === 'search' && !selectedPost && (
-          <div className="p-4 space-y-6">
-            <h2 className="font-bold text-stone-700">レビューを探す</h2>
+          <div className="p-4 space-y-4 flex flex-col h-full">
+            <h2 className="font-bold text-stone-700 text-lg">探す</h2>
 
-            {/* Keyword Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-3 w-5 h-5 text-stone-400" />
-              <input
-                type="text"
-                placeholder="資材名・病害虫名で検索..."
-                className="w-full pl-10 pr-4 py-3 rounded-xl bg-white shadow-sm border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
-              />
+            {/* Split Search Tabs */}
+            <div className="flex bg-stone-100 p-1 rounded-xl">
+              <button
+                onClick={() => setSearchTab('materials')}
+                className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${searchTab === 'materials' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+              >
+                農業資材で検索
+              </button>
+              <button
+                onClick={() => setSearchTab('farmers')}
+                className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${searchTab === 'farmers' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+              >
+                農家で検索
+              </button>
             </div>
 
-            {/* Attribute Filters */}
-            <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
-              <div className="flex items-center gap-2 mb-3">
+            {/* Keyword Search */}
+            <div className="relative mt-2">
+              <Search className="absolute left-3 top-3.5 w-5 h-5 text-stone-400" />
+              <input
+                type="text"
+                placeholder={searchTab === 'materials' ? "資材名・病害虫などをフリー入力..." : "農家名、キーワード..."}
+                className="w-full pl-10 pr-12 py-3.5 rounded-xl bg-white shadow-sm border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none transition-all text-sm font-medium"
+              />
+              <button className="absolute right-2 top-2 p-1.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors">
+                <Mic className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Composite Filters */}
+            <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100 space-y-4">
+              <div className="flex items-center gap-2 border-b border-stone-100 pb-2">
                 <Filter className="w-4 h-4 text-emerald-600" />
-                <h3 className="text-sm font-bold text-stone-700">農家の属性で絞り込む</h3>
+                <h3 className="text-sm font-bold text-stone-700">複合条件で絞り込む</h3>
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">経営形態</p>
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-medium cursor-pointer">すべて</span>
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">専業農家</span>
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">兼業農家</span>
-                  </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-stone-500 font-bold">作物</span>
+                  <input type="text" placeholder="例: トマト" className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-colors" />
                 </div>
-                <div>
-                  <p className="text-xs text-stone-500 mb-1">主な対象作物</p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">果菜類（トマト等）</span>
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">葉菜類</span>
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">果樹</span>
-                    <span className="px-3 py-1 bg-stone-100 text-stone-600 rounded-full text-xs font-medium cursor-pointer">水稲</span>
-                  </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-stone-500 font-bold">地域</span>
+                  <input type="text" placeholder="例: 北海道" className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-colors" />
                 </div>
+                {searchTab === 'materials' && (
+                  <div className="flex flex-col gap-1.5 col-span-2">
+                    <span className="text-xs text-stone-500 font-bold">使った時期</span>
+                    <input type="text" placeholder="例: 春、定植期" className="bg-stone-50 border border-stone-200 px-3 py-2 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500 transition-colors" />
+                  </div>
+                )}
               </div>
-              <button className="w-full mt-4 py-2 bg-emerald-50 text-emerald-700 font-bold rounded-lg text-sm">
-                この条件で検索
+
+              <button className="w-full mt-2 py-3 bg-stone-800 hover:bg-stone-900 text-white font-bold rounded-xl text-sm transition-colors shadow-md flex items-center justify-center gap-2">
+                <Search className="w-4 h-4" />
+                この条件で検索する
               </button>
             </div>
 
@@ -983,9 +1018,36 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* Usage Period and Temperature */}
+                    <div className="flex gap-4 animate-pop-in">
+                      <div className="flex-1">
+                        <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">使用時期（任意）</label>
+                        <input type="text" value={reviewTiming} onChange={(e) => setReviewTiming(e.target.value)} placeholder="例: 定植後、梅雨" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">気温（任意）</label>
+                        <input type="text" value={reviewTemp} onChange={(e) => setReviewTemp(e.target.value)} placeholder="例: 25℃前後" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm" />
+                      </div>
+                    </div>
+
                     {/* Target/Situation Selection */}
                     <div className="animate-pop-in">
-                      <label className="block text-xs font-bold text-stone-500 mb-2 uppercase tracking-wide">2. 使う状況・目的</label>
+                      <label className="block text-xs font-bold text-stone-500 mb-2 uppercase tracking-wide">2. 使う状況・目的（対象）</label>
+                      <div className="relative mb-3">
+                        <input
+                          type="text"
+                          value={selectedTarget}
+                          onChange={(e) => setSelectedTarget(e.target.value)}
+                          placeholder="対象病害虫・作物などをフリー入力"
+                          className="w-full pl-4 pr-10 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-2 top-2 p-1.5 text-stone-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        >
+                          <Mic className="w-5 h-5" />
+                        </button>
+                      </div>
                       <div className="flex flex-wrap gap-2">
                         {TARGET_TAGS[selectedCategory].map(tag => (
                           <button
@@ -1161,10 +1223,15 @@ export default function App() {
                 )}
 
                 {/* Free Text (Placeholder changes by mode) */}
-                <div>
-                  <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">
-                    {postMode === 'review' ? 'レビュー・メモ' : '投稿内容'}
-                  </label>
+                <div className="relative">
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-xs font-bold text-stone-500 uppercase tracking-wide">
+                      {postMode === 'review' ? 'レビュー・メモ' : '投稿内容'}
+                    </label>
+                    <button type="button" className="text-emerald-600 flex items-center gap-1 text-[10px] font-bold bg-emerald-50 hover:bg-emerald-100 px-2.5 py-1 rounded-full transition-colors leading-none">
+                      <Mic className="w-3 h-3" /> 音声入力
+                    </button>
+                  </div>
                   <textarea
                     value={reviewText}
                     onChange={(e) => setReviewText(e.target.value)}
@@ -1513,41 +1580,41 @@ export default function App() {
             {/* Central Button (Photo Post) */}
             <div
               className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 140px)', transform: 'translateX(-50%)' }}
+              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 140px)', transform: 'translate(-50%, 50%)' }}
               onClick={() => handleMenuClick('photo')}
             >
               <button
-                className="w-[84px] h-[84px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_30px_rgba(16,185,129,0.5)] border-4 border-white active:scale-95 transition-transform"
+                className="w-[102px] h-[102px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.5)] border-[5px] border-white hover:scale-105 active:scale-95 transition-transform"
               >
-                <Camera className="w-8 h-8 text-white mb-1" />
-                <span className="text-[10px] font-bold text-white leading-none">写真で記録</span>
+                <Camera className="w-10 h-10 text-white mb-1" />
+                <span className="text-[11px] font-bold text-white leading-none">写真で記録</span>
               </button>
             </div>
 
             {/* Close Button (Slightly Below Center) */}
             <div
               className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 40px)', transform: 'translateX(-50%)' }}
+              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 30px)', transform: 'translate(-50%, 50%)' }}
               onClick={() => setShowPostMenu(false)}
             >
               <button
-                className="w-[56px] h-[56px] bg-white text-stone-400 hover:text-stone-600 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                className="w-[44px] h-[44px] bg-white text-stone-400 hover:text-stone-600 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
               >
-                <X className="w-6 h-6" />
+                <X className="w-5 h-5" />
               </button>
               <span className="text-[10px] font-medium text-white mt-1 opacity-70">閉じる</span>
             </div>
 
-            {/* Surrounding Buttons (Circular arrangement, leaving bottom 90-degree area open for close button) */}
+            {/* Surrounding Buttons (Circular arrangement) */}
             {[
-              { label: 'アルバム', icon: Images, angle: -120, type: 'album' },      // Top Left
-              { label: '資材レビュー', icon: Star, angle: -60, type: 'review' },    // Top Right
-              { label: 'ブログ', icon: PenTool, angle: 0, type: 'blog' },          // Right
-              { label: 'つぶやき', icon: MessageSquare, angle: 60, type: 'tweet' },// Bottom Right
-              { label: '作業日誌', icon: ClipboardList, angle: 120, type: 'diary' },// Bottom Left
-              { label: '収穫記錄', icon: Tractor, angle: -180, type: 'harvest' },  // Left
+              { label: 'アルバム', icon: Images, angle: -180, type: 'album' },
+              { label: '資材レビュー', icon: Star, angle: -144, type: 'review' },
+              { label: 'ブログ', icon: PenTool, angle: -108, type: 'blog' },
+              { label: 'つぶやき', icon: MessageSquare, angle: -72, type: 'tweet' },
+              { label: '作業日誌', icon: ClipboardList, angle: -36, type: 'diary' },
+              { label: '収穫記錄', icon: Tractor, angle: 0, type: 'harvest' },
             ].map((item, index) => {
-              const radius = 105; // 半径(px) => distance from center photo button
+              const radius = 135; // 半径(px) => distance from center photo button
               const angleRad = item.angle * (Math.PI / 180);
               const x = Math.cos(angleRad) * radius;
               // Center Y is 140px. Y decreases as it goes down.
@@ -1566,11 +1633,11 @@ export default function App() {
                 >
                   <button
                     onClick={() => handleMenuClick(item.type)}
-                    className="w-[55px] h-[55px] bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform hover:shadow-xl"
+                    className="w-[68px] h-[68px] bg-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.15)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105"
                   >
-                    <item.icon className="w-6 h-6 text-emerald-600" />
+                    <item.icon className="w-7 h-7 text-emerald-600" />
                   </button>
-                  <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-md whitespace-nowrap">{item.label}</span>
+                  <span className="text-[12px] font-bold text-white mt-2 drop-shadow-md whitespace-nowrap">{item.label}</span>
                 </div>
               )
             })}
