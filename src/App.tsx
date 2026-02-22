@@ -263,6 +263,20 @@ export default function App() {
   // Visibility checkboxes - communities
   const [visibleCommunities, setVisibleCommunities] = useState<string[]>([]);
 
+  // Multiple photos state (up to 5)
+  const [postPhotos, setPostPhotos] = useState<string[]>([]);
+  const [photoLabels, setPhotoLabels] = useState<string[]>([]);
+
+  // Search state
+  const [searchInput, setSearchInput] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchSort, setSearchSort] = useState('newest'); // 'newest', 'likes', 'oldest'
+  const [searchFilter, setSearchFilter] = useState('all'); // 'all', 'review', 'photo', 'blog', 'diary', 'purchase'
+  const [hasSearched, setHasSearched] = useState(false);
+
+  // Community join/leave state
+  const [joinedCommunities, setJoinedCommunities] = useState<string[]>(['トマト部', '水稲部']);
+
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
   // const [selectedCommunity, setSelectedCommunity] = useState(null);
@@ -1088,6 +1102,112 @@ export default function App() {
                     <p className="text-sm font-bold text-stone-800 mt-2">週末のオンライン就農支援相談会</p>
                     <p className="text-xs text-stone-500 mt-1">先輩農家さんから直接話が聞けるチャンスです。参加費無料。</p>
                   </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* SEARCH VIEW */}
+        {activeTab === 'search' && !selectedPost && (
+          <div className="p-4 space-y-4 pb-32">
+            {/* Search Input */}
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+              <input
+                type="text"
+                value={searchInput}
+                onChange={e => setSearchInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && searchInput.trim()) {
+                    const q = searchInput.toLowerCase();
+                    const results = posts.filter(p =>
+                      p.content?.toLowerCase().includes(q) ||
+                      p.material?.toLowerCase().includes(q) ||
+                      p.author?.name?.toLowerCase().includes(q) ||
+                      p.tags?.some((t: string) => t.toLowerCase().includes(q)) ||
+                      p.category?.toLowerCase().includes(q) ||
+                      p.type?.toLowerCase().includes(q)
+                    );
+                    setSearchResults(results);
+                    setHasSearched(true);
+                  }
+                }}
+                placeholder="投稿・資材・農家を検索..."
+                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-stone-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
+              />
+            </div>
+
+            {/* Sort & Filter */}
+            {hasSearched && (
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+                <select value={searchFilter} onChange={e => {
+                  setSearchFilter(e.target.value);
+                }} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none">
+                  <option value="all">全て</option>
+                  <option value="review">レビュー</option>
+                  <option value="photo">写真</option>
+                  <option value="blog">ブログ</option>
+                  <option value="diary">日誌</option>
+                  <option value="purchase">購入</option>
+                </select>
+                <select value={searchSort} onChange={e => setSearchSort(e.target.value)} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none">
+                  <option value="newest">新しい順</option>
+                  <option value="oldest">古い順</option>
+                  <option value="likes">いいね順</option>
+                </select>
+                <span className="text-xs text-stone-400 font-bold self-center ml-auto whitespace-nowrap">{(() => {
+                  let r = searchResults;
+                  if (searchFilter !== 'all') r = r.filter(p => p.type === searchFilter);
+                  return r.length;
+                })()}件</span>
+              </div>
+            )}
+
+            {/* Results */}
+            {hasSearched ? (
+              <div className="space-y-3">
+                {(() => {
+                  let r = searchResults;
+                  if (searchFilter !== 'all') r = r.filter(p => p.type === searchFilter);
+                  if (searchSort === 'likes') r = [...r].sort((a, b) => b.likes - a.likes);
+                  if (searchSort === 'oldest') r = [...r].reverse();
+                  return r.length > 0 ? r.map(post => renderPostCard(post)) : (
+                    <div className="text-center py-12">
+                      <Search className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                      <p className="text-stone-500 font-bold">「{searchInput}」の検索結果はありません</p>
+                      <p className="text-stone-400 text-xs mt-1">別のキーワードで検索してみましょう</p>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="font-bold text-stone-700 text-sm">人気のタグ</h3>
+                <div className="flex flex-wrap gap-2">
+                  {['#トマト', '#水稲', '#新規就農', '#減農薬', '#有機栽培', '#スマート農業'].map(tag => (
+                    <button key={tag} onClick={() => {
+                      setSearchInput(tag);
+                      const q = tag.toLowerCase();
+                      setSearchResults(posts.filter(p => p.content?.toLowerCase().includes(q) || p.tags?.some((t: string) => t.toLowerCase().includes(q))));
+                      setHasSearched(true);
+                    }} className="px-3 py-2 bg-white border border-stone-200 rounded-full text-xs font-bold text-stone-600 hover:bg-emerald-50 hover:border-emerald-300 transition-colors">
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+                <h3 className="font-bold text-stone-700 text-sm">おすすめの農家</h3>
+                <div className="space-y-2">
+                  {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
+                    <button key={i} onClick={() => setViewedUser({ name, avatarUrl: `https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=100&auto=format&fit=crop`, isCertified: i === 0, selfPromo: '農業が好きです', location: ['千葉県', '新潟県', '長野県'][i], crops: ['トマト', '水稲', 'レタス'], experience: '専業', posts: posts.slice(0, 3), followersCount: 120, followingCount: 34 })} className="w-full bg-white p-3 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
+                      <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover" alt="" />
+                      <div>
+                        <p className="font-bold text-sm text-stone-800">{name}</p>
+                        <p className="text-[10px] text-stone-500">{['専業 / トマト / 千葉県', '兼業 / 水稲 / 新潟県', '専業 / レタス / 長野県'][i]}</p>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-stone-300 ml-auto" />
+                    </button>
+                  ))}
                 </div>
               </div>
             )}
@@ -2174,10 +2294,10 @@ export default function App() {
             {/* Menu Container */}
             <div className="absolute inset-0">
 
-              {/* Central Button (Photo Post) */}
+              {/* Central Button (Photo Post) - TRUE CENTER */}
               <div
                 className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-                style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 140px)', transform: 'translate(-50%, 50%)' }}
+                style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
                 onClick={() => handleMenuClick('photo')}
               >
                 <button
@@ -2188,10 +2308,10 @@ export default function App() {
                 </button>
               </div>
 
-              {/* Close Button (Slightly Below Center) */}
+              {/* Close Button (Bottom of Screen) */}
               <div
                 className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-                style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 30px)', transform: 'translate(-50%, 50%)' }}
+                style={{ left: '50%', bottom: '40px', transform: 'translate(-50%, 0)' }}
                 onClick={() => setShowPostMenu(false)}
               >
                 <button
