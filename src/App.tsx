@@ -702,12 +702,15 @@ export default function App() {
         </div>
         {post.author && (
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden cursor-pointer" onClick={(e) => {
+              e.stopPropagation();
+              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name), followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
+            }}>
               <img src={post.author.avatarUrl} alt={post.author.name} className="w-full h-full object-cover" />
             </div>
             <span className="text-xs text-stone-600 font-medium cursor-pointer hover:underline" onClick={(e) => {
               e.stopPropagation();
-              setViewedUser(post.author);
+              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name), followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
             }}>{post.author.name}</span>
             {renderUserBadge(post.author.isCertified, post.likes)}
           </div>
@@ -979,12 +982,12 @@ export default function App() {
                 <div className="px-4 mb-2">
                   <h3 className="font-bold text-stone-700 text-sm mb-3 flex items-center gap-1.5"><Flame className="w-4 h-4 text-orange-500" />ハイライト</h3>
                   <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-                    {[{ name: '田中農園', img: 'https://images.unsplash.com/photo-1535713875002-d1d0cfdfeeab?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1592982537447-6f2a6a0c0fbd?q=80&w=200&auto=format&fit=crop' },
-                    { name: '鈴木ファーム', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1574943320219-553eb213f72d?q=80&w=200&auto=format&fit=crop' },
-                    { name: '山田農園', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1560493676-04071c5f467b?q=80&w=200&auto=format&fit=crop' },
-                    { name: '佐藤ファーム', img: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop', story: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=200&auto=format&fit=crop' },
+                    {[{ name: '田中農園', img: 'https://images.unsplash.com/photo-1535713875002-d1d0cfdfeeab?q=80&w=100&auto=format&fit=crop', loc: '千葉県', crop: 'トマト' },
+                    { name: '鈴木ファーム', img: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop', loc: '新潟県', crop: '水稲' },
+                    { name: '山田農園', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop', loc: '長野県', crop: 'レタス' },
+                    { name: '佐藤ファーム', img: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop', loc: '北海道', crop: 'かぼちゃ' },
                     ].map((u, i) => (
-                      <button key={i} className="flex flex-col items-center min-w-[68px] group">
+                      <button key={i} onClick={() => setViewedUser({ name: u.name, avatarUrl: u.img, isCertified: i === 0, selfPromo: u.crop + 'を中心に栽培しています', location: u.loc, crops: [u.crop], experience: '専業', posts: posts.filter(p => p.author?.name === u.name).length > 0 ? posts.filter(p => p.author?.name === u.name) : posts.slice(0, 2), followersCount: 80 + i * 30, followingCount: 20 + i * 5 })} className="flex flex-col items-center min-w-[68px] group">
                         <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 mb-1">
                           <img src={u.img} className="w-full h-full rounded-full object-cover border-2 border-white" alt="" />
                         </div>
@@ -1017,14 +1020,19 @@ export default function App() {
                 </div>
 
                 {/* Recommended farmers */}
+                {/* おすすめの農家さん */}
                 <div className="px-4">
                   <h3 className="font-bold text-stone-700 text-sm mb-3">おすすめの農家さん</h3>
                   <div className="flex gap-3 overflow-x-auto pb-2">
-                    {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
-                      <div key={i} className="flex flex-col items-center min-w-[70px] bg-white p-3 rounded-xl shadow-sm border border-stone-100">
-                        <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover mb-1" alt="" />
-                        <span className="text-[10px] font-bold text-stone-700 truncate w-full text-center">{name}</span>
-                      </div>
+                    {[{ name: '田中農園', img: '1535713875002-d1d0cfdfeeab', loc: '千葉県', crop: 'トマト', cert: true },
+                    { name: '鈴木ファーム', img: '1544005313-94ddf0286df2', loc: '新潟県', crop: '水稲', cert: false },
+                    { name: '山田農園', img: '1500648767791-00dcc994a43e', loc: '長野県', crop: 'レタス', cert: false },
+                    ].map((farmer, i) => (
+                      <button key={i} onClick={() => setViewedUser({ name: farmer.name, avatarUrl: `https://images.unsplash.com/photo-${farmer.img}?q=80&w=100&auto=format&fit=crop`, isCertified: farmer.cert, selfPromo: farmer.crop + 'を中心に栽培', location: farmer.loc, crops: [farmer.crop], experience: '専業', posts: posts.filter(p => p.author?.name === farmer.name).length > 0 ? posts.filter(p => p.author?.name === farmer.name) : posts.slice(0, 2), followersCount: 80 + i * 40, followingCount: 15 + i * 10 })} className="flex flex-col items-center min-w-[70px] bg-white p-3 rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-shadow active:scale-95">
+                        <img src={`https://images.unsplash.com/photo-${farmer.img}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover mb-1" alt="" />
+                        <span className="text-[10px] font-bold text-stone-700 truncate w-full text-center">{farmer.name}</span>
+                        <span className="text-[9px] text-stone-400">{farmer.loc}</span>
+                      </button>
                     ))}
                   </div>
                 </div>
