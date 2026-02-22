@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic, Settings, Bell, Globe, AlertCircle } from 'lucide-react';
+import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic, Settings, Bell, Globe, AlertCircle, ShoppingCart, Check } from 'lucide-react';
 import { subDays, isAfter } from 'date-fns';
 
 /**
@@ -207,9 +207,48 @@ export default function App() {
 
   // UI Ext State
   const [searchTab, setSearchTab] = useState('materials'); // 'materials', 'farmers'
-  const [homeTab, setHomeTab] = useState('recommended'); // 'recommended', 'ranking', 'news'
-  const [profilePostFilter, setProfilePostFilter] = useState('all'); // 'all', 'photo', 'album', 'review', 'blog', 'harvest'
-  const [profilePostSort, setProfilePostSort] = useState('newest'); // 'newest', 'likes'
+  const [homeTab, setHomeTab] = useState('recommended'); // 'recommended', 'ranking', 'news', 'trend'
+  const [profilePostFilter, setProfilePostFilter] = useState('all');
+  const [profilePostSort, setProfilePostSort] = useState('newest');
+  const [trendRange, setTrendRange] = useState('week'); // 'day', 'week', 'month'
+
+  // Friends sub-view state
+  const [friendSubView, setFriendSubView] = useState<string | null>(null); // null, 'likes', 'comments', 'messages', 'follows'
+  const [selectedChat, setSelectedChat] = useState<any>(null);
+  const [chatMessage, setChatMessage] = useState('');
+
+  // Mock data for messages
+  const [mockMessages] = useState([
+    {
+      id: 'm1', user: { name: '田中農園', avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cfdfeeab?q=80&w=100&auto=format&fit=crop' }, lastMessage: 'トマトの苗、今年はどこで買いましたか？', time: '2時間前', unread: 2, messages: [
+        { from: 'them', text: 'こんにちは！トマトの苗、今年はどこで買いましたか？', time: '14:20' },
+        { from: 'me', text: '今年はJAで買いましたよ！桃太郎とアイコの2品種です', time: '14:25' },
+        { from: 'them', text: 'トマトの苗、今年はどこで買いましたか？', time: '14:30' },
+      ]
+    },
+    {
+      id: 'm2', user: { name: '鈴木ファーム', avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop' }, lastMessage: 'お疲れ様です！収穫おめでとうございます🎉', time: '昨日', unread: 0, messages: [
+        { from: 'me', text: '今日初収穫でした！', time: '10:00' },
+        { from: 'them', text: 'お疲れ様です！収穫おめでとうございます🎉', time: '10:15' },
+      ]
+    },
+  ]);
+
+  // Mock data for follow requests
+  const [followRequests, setFollowRequests] = useState([
+    { id: 'fr1', user: { name: '田中ファーム', avatarUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop', attribute: '専業 / トマト', location: '千葉県' }, status: 'pending' },
+    { id: 'fr2', user: { name: '山田農園', avatarUrl: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop', attribute: '兼業 / 水稲', location: '新潟県' }, status: 'pending' },
+  ]);
+
+  // Hashtag input state
+  const [hashtagInput, setHashtagInput] = useState('');
+  const [postTags, setPostTags] = useState<string[]>([]);
+
+  // Album photos state
+  const [albumPhotos, setAlbumPhotos] = useState<string[]>([]);
+
+  // Visibility checkboxes - communities
+  const [visibleCommunities, setVisibleCommunities] = useState<string[]>([]);
 
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
@@ -295,6 +334,7 @@ export default function App() {
   const [postText, setPostText] = useState(''); // For other post types
   const [harvestAmount, setHarvestAmount] = useState(''); // For harvest
   const [workTime, setWorkTime] = useState(''); // For diary
+  const [purchaseAmount, setPurchaseAmount] = useState(''); // For purchase
   const [postVisibility, setPostVisibility] = useState('community'); // 'community', 'public', 'followers', 'draft'
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -705,8 +745,8 @@ export default function App() {
         />
       )}
 
-      {/* --- OVERLAYS --- */}
-      <header className="bg-emerald-600 text-white p-4 shadow-md z-10 flex justify-between items-center">
+      {/* --- TOP HEADER (sticky) --- */}
+      <header className="sticky top-0 bg-emerald-600 text-white p-4 shadow-md z-20 flex justify-between items-center">
         <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowSettingsModal(true)} role="button">
           <Sprout className="w-6 h-6" />
           <h1 className="font-bold text-lg tracking-wider">AgriReview</h1>
@@ -736,9 +776,10 @@ export default function App() {
             {/* Home Sub Tabs */}
             <div className="px-4 pt-4 sticky top-0 z-10 bg-stone-100">
               <div className="flex bg-white/80 backdrop-blur p-1 rounded-xl shadow-sm border border-stone-100">
-                <button onClick={() => setHomeTab('recommended')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'recommended' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>おすすめ</button>
-                <button onClick={() => setHomeTab('ranking')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'ranking' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ランキング</button>
-                <button onClick={() => setHomeTab('news')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'news' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ニュース</button>
+                <button onClick={() => setHomeTab('recommended')} className={`flex-1 py-2 text-xs font-bold text-center rounded-lg transition-all ${homeTab === 'recommended' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>おすすめ</button>
+                <button onClick={() => setHomeTab('ranking')} className={`flex-1 py-2 text-xs font-bold text-center rounded-lg transition-all ${homeTab === 'ranking' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ランキング</button>
+                <button onClick={() => setHomeTab('trend')} className={`flex-1 py-2 text-xs font-bold text-center rounded-lg transition-all ${homeTab === 'trend' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>トレンド</button>
+                <button onClick={() => setHomeTab('news')} className={`flex-1 py-2 text-xs font-bold text-center rounded-lg transition-all ${homeTab === 'news' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ニュース</button>
               </div>
             </div>
 
@@ -761,18 +802,14 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="bg-white p-4 pb-6 shadow-sm border-b border-stone-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <UserPlus className="w-5 h-5 text-blue-500" />
-                    <h2 className="font-bold text-stone-700">おすすめの農家</h2>
-                  </div>
-                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                    {[1, 2, 3, 4].map(i => (
-                      <div key={i} className="min-w-[120px] bg-white p-3 rounded-xl border border-stone-100 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow flex flex-col items-center text-center pb-4">
-                        <img src={`https://i.pravatar.cc/150?img=${i + 10}`} alt="Farmer" className="w-12 h-12 rounded-full mb-2 object-cover border-2 border-emerald-100" />
-                        <h3 className="font-bold text-xs text-stone-800">注目の農家 {i}</h3>
-                        <p className="text-[10px] text-stone-500 mt-0.5">新規就農 / トマト</p>
-                        <button className="mt-2 text-[10px] bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold hover:bg-stone-200">フォロー</button>
+                {/* Recommended farmers */}
+                <div className="px-4">
+                  <h3 className="font-bold text-stone-700 text-sm mb-3">おすすめの農家さん</h3>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
+                      <div key={i} className="flex flex-col items-center min-w-[70px] bg-white p-3 rounded-xl shadow-sm border border-stone-100">
+                        <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover mb-1" alt="" />
+                        <span className="text-[10px] font-bold text-stone-700 truncate w-full text-center">{name}</span>
                       </div>
                     ))}
                   </div>
@@ -785,23 +822,45 @@ export default function App() {
                     <h2 className="font-bold text-stone-700">おすすめの投稿</h2>
                   </div>
                   {/* mix of posts */}
-                  {posts.map((post) => renderPostCard(post))}
+                  {posts.slice(0, 5).map((post) => renderPostCard(post))}
                 </div>
               </>
             )}
 
             {homeTab === 'ranking' && (
-              <div className="p-4 space-y-4">
-                <div className="flex justify-between items-center mb-2">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-amber-500" />
-                    <h2 className="font-bold text-stone-700">人気投稿ランキング</h2>
-                  </div>
-                  <button className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full font-bold flex items-center gap-1 hover:bg-stone-200">
-                    <Filter className="w-3 h-3" /> 絞り込み
-                  </button>
+              <div className="px-4 space-y-3">
+                {[...posts].sort((a, b) => b.likes - a.likes).map((post, i) => renderPostCard(post, i, true))}
+              </div>
+            )}
+
+            {homeTab === 'trend' && (
+              <div className="px-4 space-y-4">
+                <div className="flex gap-2">
+                  {([['day', '1日'], ['week', '1週間'], ['month', '1ヶ月']] as const).map(([key, label]) => (
+                    <button key={key} onClick={() => setTrendRange(key)} className={`px-4 py-2 rounded-full text-xs font-bold transition-colors ${trendRange === key ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'}`}>
+                      {label}
+                    </button>
+                  ))}
                 </div>
-                {[...posts].sort((a, b) => b.likes - a.likes).slice(0, 5).map((post, index) => renderPostCard(post, index, true))}
+                <div className="space-y-3">
+                  <h3 className="font-bold text-stone-700 text-sm">トレンドのハッシュタグ</h3>
+                  {['#トマト栽培', '#新規就農', '#減農薬', '#スマート農業', '#収穫祭り'].map((tag, i) => (
+                    <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex justify-between items-center">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-black text-stone-300">{i + 1}</span>
+                        <div>
+                          <span className="font-bold text-emerald-700 text-sm">{tag}</span>
+                          <p className="text-[10px] text-stone-400">{Math.floor(Math.random() * 100 + 20)}件の投稿</p>
+                        </div>
+                      </div>
+                      <Flame className="w-5 h-5 text-orange-400" />
+                    </div>
+                  ))}
+                </div>
+                <div className="space-y-3">
+                  <h3 className="font-bold text-stone-700 text-sm">人気の投稿</h3>
+                  {[...posts].sort((a, b) => b.likes - a.likes).slice(0, 3).map((post, i) => renderPostCard(post, i, true))}
+                </div>
               </div>
             )}
 
@@ -1284,16 +1343,16 @@ export default function App() {
                   </div>
                 )}
 
-                {/* Harvest Mode */}
-                {postMode === 'harvest' && (
+                {/* Purchase Mode */}
+                {postMode === 'purchase' && (
                   <div className="flex gap-4 animate-pop-in">
                     <div className="flex-1">
-                      <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">作物名</label>
-                      <input type="text" value={materialName} onChange={(e) => setMaterialName(e.target.value)} placeholder="例: トマト（桃太郎）" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm" required />
+                      <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">購入資材名</label>
+                      <input type="text" value={materialName} onChange={(e) => setMaterialName(e.target.value)} placeholder="例: 〇〇肥料 20kg" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm" required />
                     </div>
                     <div className="w-1/3">
-                      <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">収量・規格</label>
-                      <input type="text" value={harvestAmount} onChange={(e) => setHarvestAmount(e.target.value)} placeholder="例: A品 20箱" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm" required />
+                      <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">購入金額</label>
+                      <input type="text" value={purchaseAmount} onChange={(e) => setPurchaseAmount(e.target.value)} placeholder="例: 3,000円" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm" required />
                     </div>
                   </div>
                 )}
@@ -1373,7 +1432,7 @@ export default function App() {
                   disabled={(() => {
                     if (postMode === 'review') return reviewRating === 0 || !materialName || !reviewText;
                     if (postMode === 'blog' || postMode === 'album') return !postTitle;
-                    if (postMode === 'harvest') return !materialName || !harvestAmount;
+                    if (postMode === 'purchase') return !materialName || !purchaseAmount;
                     if (postMode === 'diary') return !materialName || !workTime;
                     return !reviewText && !photoPreview;
                   })()}
@@ -1471,7 +1530,7 @@ export default function App() {
                       <option value="album">アルバム</option>
                       <option value="review">レビュー</option>
                       <option value="blog">ブログ</option>
-                      <option value="harvest">収穫</option>
+                      <option value="purchase">購入</option>
                     </select>
                     <div className="flex-1"></div>
                     <select value={profilePostSort} onChange={e => setProfilePostSort(e.target.value)} className="bg-stone-50 border-none text-xs font-bold text-stone-700 outline-none rounded-lg px-2 py-1 mr-2">
@@ -1523,49 +1582,139 @@ export default function App() {
               {/* Friends Tab */}
               {activeProfileTab === 'friends' && (
                 <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-pink-50 rounded-full flex items-center justify-center">
-                          <Heart className="w-5 h-5 text-pink-500" />
-                        </div>
-                        <span className="font-bold text-xs text-stone-700">いいね一覧</span>
+                  {!friendSubView && (
+                    <>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button onClick={() => setFriendSubView('likes')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95">
+                          <div className="w-10 h-10 bg-pink-50 rounded-full flex items-center justify-center"><Heart className="w-5 h-5 text-pink-500" /></div>
+                          <span className="font-bold text-xs text-stone-700">いいね一覧</span>
+                        </button>
+                        <button onClick={() => setFriendSubView('comments')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95">
+                          <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center"><MessageCircle className="w-5 h-5 text-blue-500" /></div>
+                          <span className="font-bold text-xs text-stone-700">コメント管理</span>
+                        </button>
+                        <button onClick={() => setFriendSubView('messages')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95 relative">
+                          <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center relative">
+                            <MessageSquare className="w-5 h-5 text-indigo-500" />
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">2</span>
+                          </div>
+                          <span className="font-bold text-xs text-stone-700">メッセージ</span>
+                        </button>
+                        <button onClick={() => setFriendSubView('follows')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95 relative">
+                          <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center relative">
+                            <UserPlus className="w-5 h-5 text-emerald-500" />
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">{followRequests.filter(f => f.status === 'pending').length}</span>
+                          </div>
+                          <span className="font-bold text-xs text-stone-700">フォロー申請</span>
+                        </button>
                       </div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
-                          <MessageCircle className="w-5 h-5 text-blue-500" />
-                        </div>
-                        <span className="font-bold text-xs text-stone-700">コメント管理</span>
+                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
+                        <Users className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                        <p className="text-sm text-emerald-800 font-bold mb-1">友達をアプリに招待する</p>
+                        <button className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm w-full shadow-sm">招待リンクをコピー</button>
                       </div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center relative">
-                          <MessageSquare className="w-5 h-5 text-indigo-500" />
-                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
-                        </div>
-                        <span className="font-bold text-xs text-stone-700">メッセージ</span>
-                      </div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-2">
-                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center relative">
-                          <UserPlus className="w-5 h-5 text-emerald-500" />
-                          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">1</span>
-                        </div>
-                        <span className="font-bold text-xs text-stone-700">フォロー申請</span>
-                      </div>
-                    </div>
-                  </div>
+                    </>
+                  )}
 
-                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center mt-4">
-                    <Users className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
-                    <p className="text-sm text-emerald-800 font-bold mb-1">友達をアプリに招待する</p>
-                    <p className="text-[10px] text-emerald-600 mb-3">地域や作物が近い農家さんと情報交換しよう</p>
-                    <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm w-full shadow-sm hover:bg-emerald-700 transition-colors">招待リンクをコピー</button>
-                  </div>
+                  {/* Messages Sub-View */}
+                  {friendSubView === 'messages' && !selectedChat && (
+                    <div>
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-800 mb-3">メッセージ</h3>
+                      <div className="space-y-2">
+                        {mockMessages.map((msg: any) => (
+                          <button key={msg.id} onClick={() => setSelectedChat(msg)} className="w-full bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
+                            <img src={msg.user.avatarUrl} className="w-12 h-12 rounded-full object-cover" alt="" />
+                            <div className="flex-1 min-w-0">
+                              <div className="flex justify-between items-center mb-1">
+                                <span className="font-bold text-sm text-stone-800">{msg.user.name}</span>
+                                <span className="text-[10px] text-stone-400">{msg.time}</span>
+                              </div>
+                              <p className="text-xs text-stone-500 truncate">{msg.lastMessage}</p>
+                            </div>
+                            {msg.unread > 0 && <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">{msg.unread}</span>}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chat View */}
+                  {friendSubView === 'messages' && selectedChat && (
+                    <div className="flex flex-col" style={{ minHeight: '50vh' }}>
+                      <div className="flex items-center gap-3 mb-4">
+                        <button onClick={() => setSelectedChat(null)} className="p-1"><ArrowLeft className="w-5 h-5 text-stone-600" /></button>
+                        <img src={selectedChat.user.avatarUrl} className="w-8 h-8 rounded-full object-cover" alt="" />
+                        <span className="font-bold text-stone-800">{selectedChat.user.name}</span>
+                      </div>
+                      <div className="flex-1 space-y-3 mb-4">
+                        {selectedChat.messages.map((m: any, i: number) => (
+                          <div key={i} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${m.from === 'me' ? 'bg-emerald-500 text-white rounded-br-md' : 'bg-white border border-stone-200 text-stone-800 rounded-bl-md'}`}>
+                              <p>{m.text}</p>
+                              <span className={`text-[10px] mt-1 block ${m.from === 'me' ? 'text-emerald-100' : 'text-stone-400'}`}>{m.time}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="flex gap-2 sticky bottom-0 bg-stone-100 pt-2">
+                        <input value={chatMessage} onChange={e => setChatMessage(e.target.value)} placeholder="メッセージを入力..." className="flex-1 px-4 py-3 rounded-full border border-stone-200 bg-white text-sm outline-none focus:ring-2 focus:ring-emerald-500" />
+                        <button className="w-11 h-11 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-sm"><Send className="w-5 h-5" /></button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Follow Requests Sub-View */}
+                  {friendSubView === 'follows' && (
+                    <div>
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-800 mb-3">フォロー申請</h3>
+                      <div className="space-y-3">
+                        {followRequests.map((req: any) => (
+                          <div key={req.id} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100">
+                            <div className="flex items-center gap-3 mb-3">
+                              <img src={req.user.avatarUrl} className="w-12 h-12 rounded-full object-cover" alt="" />
+                              <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-stone-800">{req.user.name}</p>
+                                <p className="text-[10px] text-stone-500">{req.user.attribute} ・ {req.user.location}</p>
+                              </div>
+                            </div>
+                            {req.status === 'pending' ? (
+                              <div className="flex gap-2">
+                                <button onClick={() => setFollowRequests(followRequests.map(f => f.id === req.id ? { ...f, status: 'approved' } : f))} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-lg font-bold text-sm shadow-sm">承認する</button>
+                                <button onClick={() => setFollowRequests(followRequests.filter(f => f.id !== req.id))} className="flex-1 py-2.5 bg-stone-200 text-stone-700 rounded-lg font-bold text-sm">削除</button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-emerald-600 font-bold text-sm"><CheckCircle2 className="w-4 h-4" />承認済み</div>
+                            )}
+                          </div>
+                        ))}
+                        {followRequests.length === 0 && <p className="text-center text-stone-400 text-sm py-4">フォロー申請はありません</p>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Likes Sub-View */}
+                  {friendSubView === 'likes' && (
+                    <div>
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-800 mb-3">いいねした投稿</h3>
+                      <div className="space-y-3">
+                        {posts.filter(p => p.likes > 10).slice(0, 5).map(post => renderPostCard(post))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comments Sub-View */}
+                  {friendSubView === 'comments' && (
+                    <div>
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-800 mb-3">コメント管理</h3>
+                      <div className="space-y-3">
+                        {posts.filter(p => p.comments > 0).slice(0, 5).map(post => renderPostCard(post))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1764,272 +1913,281 @@ export default function App() {
       </main>
 
       {/* --- POSTWALL MODAL --- */}
-      {showLockModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLockModal(false)}></div>
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative z-10 text-center shadow-2xl animate-pop-in">
-            <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock className="w-8 h-8 text-stone-400" />
-            </div>
-            <h3 className="text-xl font-bold text-stone-800 mb-2">レビュー閲覧制限</h3>
-            <p className="text-stone-500 mb-6 text-sm leading-relaxed">
-              地域の農家の詳細なレビューを見るためには、<br />
-              あなたも最低1件の<span className="font-bold text-emerald-600">資材レビュー</span>を<br />
-              投稿する必要があります。
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => {
-                  setShowLockModal(false);
-                  setPostMode('review');
-                  setActiveTab('record');
-                }}
-                className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                最初のレビューを書く
-              </button>
-              <button
-                onClick={() => setShowLockModal(false)}
-                className="text-stone-400 text-sm hover:text-stone-600 underline"
-              >
-                あとにする
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- POST CIRCLE MENU OVERLAY --- */}
-      {showPostMenu && (
-        <div className="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm animate-fade-in touch-none">
-          {/* Menu Container */}
-          <div className="absolute inset-0">
-
-            {/* Central Button (Photo Post) */}
-            <div
-              className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 140px)', transform: 'translate(-50%, 50%)' }}
-              onClick={() => handleMenuClick('photo')}
-            >
-              <button
-                className="w-[102px] h-[102px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.5)] border-[5px] border-white hover:scale-105 active:scale-95 transition-transform"
-              >
-                <Camera className="w-10 h-10 text-white mb-1" />
-                <span className="text-[11px] font-bold text-white leading-none">写真で記録</span>
-              </button>
-            </div>
-
-            {/* Close Button (Slightly Below Center) */}
-            <div
-              className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-              style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 30px)', transform: 'translate(-50%, 50%)' }}
-              onClick={() => setShowPostMenu(false)}
-            >
-              <button
-                className="w-[44px] h-[44px] bg-white text-stone-400 hover:text-stone-600 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <span className="text-[10px] font-medium text-white mt-1 opacity-70">閉じる</span>
-            </div>
-
-            {/* Surrounding Buttons (Circular arrangement) */}
-            {[
-              { label: 'アルバム', icon: Images, angle: 90, type: 'album' },
-              { label: '資材レビュー', icon: Star, angle: 150, type: 'review' },
-              { label: 'ブログ', icon: PenTool, angle: 210, type: 'blog' },
-              { label: 'つぶやき', icon: MessageSquare, angle: 270, type: 'tweet' },
-              { label: '作業日誌', icon: ClipboardList, angle: 330, type: 'diary' },
-              { label: '収穫記錄', icon: Tractor, angle: 30, type: 'harvest' },
-            ].map((item, index) => {
-              const radius = 130;
-              const angleRad = item.angle * (Math.PI / 180);
-              const x = Math.cos(angleRad) * radius;
-              const y = Math.sin(angleRad) * radius;
-              return (
-                <div
-                  key={index}
-                  className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
-                  style={{
-                    left: `calc(50% + ${x}px)`,
-                    top: `calc(50% - ${y}px)`,
-                    transform: 'translate(-50%, -50%)',
-                    animationDelay: `${index * 0.06}s`,
-                    animationFillMode: 'both'
+      {
+        showLockModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowLockModal(false)}></div>
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative z-10 text-center shadow-2xl animate-pop-in">
+              <div className="w-16 h-16 bg-stone-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Lock className="w-8 h-8 text-stone-400" />
+              </div>
+              <h3 className="text-xl font-bold text-stone-800 mb-2">レビュー閲覧制限</h3>
+              <p className="text-stone-500 mb-6 text-sm leading-relaxed">
+                地域の農家の詳細なレビューを見るためには、<br />
+                あなたも最低1件の<span className="font-bold text-emerald-600">資材レビュー</span>を<br />
+                投稿する必要があります。
+              </p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShowLockModal(false);
+                    setPostMode('review');
+                    setActiveTab('record');
                   }}
+                  className="w-full py-3 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all flex items-center justify-center gap-2"
                 >
-                  <button
-                    onClick={() => handleMenuClick(item.type)}
-                    className="w-[72px] h-[72px] bg-gradient-to-b from-white to-stone-50 rounded-full flex items-center justify-center shadow-[0_6px_24px_rgba(0,0,0,0.18)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105 border-2 border-white/80"
-                  >
-                    <item.icon className="w-8 h-8 text-emerald-600" />
-                  </button>
-                  <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] whitespace-nowrap">{item.label}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* --- BOTTOM NAVIGATION --- */}
-      {!selectedPost && (
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-stone-200 px-2 pt-2 pb-safe flex justify-around items-end z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ minHeight: '70px' }}>
-          <button
-            onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'}`}
-          >
-            <Home className="w-7 h-7 mb-0.5" />
-            <span className="text-[11px] font-bold">ホーム</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('community')}
-            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'}`}
-          >
-            <Users className="w-7 h-7 mb-0.5" />
-            <span className="text-[10px] font-bold">コミュニティ</span>
-          </button>
-
-          {/* Floating Action Button for Record (Post Menu Trigger) */}
-          <div className="relative -top-5 flex flex-col items-center">
-            <button
-              id="record-button"
-              onClick={() => setShowPostMenu(true)}
-              className="w-[64px] h-[64px] rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transition-transform active:scale-90 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"
-            >
-              <Plus className="w-8 h-8" />
-            </button>
-            <span className="text-[10px] font-bold text-stone-500 mt-1">記録</span>
-          </div>
-
-          <button
-            onClick={() => setActiveTab('search')}
-            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'}`}
-          >
-            <Search className="w-7 h-7 mb-0.5" />
-            <span className="text-[11px] font-bold">検索</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'}`}
-          >
-            <User className="w-7 h-7 mb-0.5" />
-            <span className="text-[10px] font-bold">マイページ</span>
-          </button>
-        </nav>
-      )}
-
-      {/* Settings Modal */}
-      {showSettingsModal && (
-        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
-            <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
-              <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
-                <Settings className="w-5 h-5 text-stone-500" />
-                設定・サポート
-              </h2>
-              <button onClick={() => setShowSettingsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
-                <X className="w-5 h-5 text-stone-600" />
-              </button>
-            </div>
-            <div className="p-4 overflow-y-auto space-y-4 flex-1">
-              <div className="space-y-2">
-                <h3 className="font-bold text-stone-700 text-sm pl-1">アカウント設定</h3>
-                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    メールアドレスの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    電話番号の変更 <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    パスワードの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="font-bold text-stone-700 text-sm pl-1">サポート</h3>
-                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    バグを報告する <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    改善の要望を送る <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
-                    ヘルプセンター <ChevronRight className="w-4 h-4 text-stone-400" />
-                  </button>
-                </div>
-              </div>
-
-              <div className="pt-4 pb-8">
-                <button className="w-full py-3 text-sm font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
-                  ログアウト
+                  <Plus className="w-5 h-5" />
+                  最初のレビューを書く
+                </button>
+                <button
+                  onClick={() => setShowLockModal(false)}
+                  className="text-stone-400 text-sm hover:text-stone-600 underline"
+                >
+                  あとにする
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
+
+      {/* --- POST CIRCLE MENU OVERLAY --- */}
+      {
+        showPostMenu && (
+          <div className="fixed inset-0 z-50 bg-stone-900/80 backdrop-blur-sm animate-fade-in touch-none">
+            {/* Menu Container */}
+            <div className="absolute inset-0">
+
+              {/* Central Button (Photo Post) */}
+              <div
+                className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
+                style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 140px)', transform: 'translate(-50%, 50%)' }}
+                onClick={() => handleMenuClick('photo')}
+              >
+                <button
+                  className="w-[102px] h-[102px] bg-emerald-600 rounded-full flex flex-col items-center justify-center shadow-[0_0_35px_rgba(16,185,129,0.5)] border-[5px] border-white hover:scale-105 active:scale-95 transition-transform"
+                >
+                  <Camera className="w-10 h-10 text-white mb-1" />
+                  <span className="text-[11px] font-bold text-white leading-none">写真で記録</span>
+                </button>
+              </div>
+
+              {/* Close Button (Slightly Below Center) */}
+              <div
+                className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
+                style={{ left: '50%', bottom: 'calc(env(safe-area-inset-bottom, 20px) + 30px)', transform: 'translate(-50%, 50%)' }}
+                onClick={() => setShowPostMenu(false)}
+              >
+                <button
+                  className="w-[44px] h-[44px] bg-white text-stone-400 hover:text-stone-600 rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <span className="text-[10px] font-medium text-white mt-1 opacity-70">閉じる</span>
+              </div>
+
+              {/* Surrounding Buttons (5 items, 72° apart) */}
+              {[
+                { label: '資材レビュー', icon: Star, angle: 90, type: 'review' },
+                { label: 'アルバム', icon: Images, angle: 162, type: 'album' },
+                { label: 'ブログ', icon: PenTool, angle: 234, type: 'blog' },
+                { label: '作業日誌', icon: ClipboardList, angle: 306, type: 'diary' },
+                { label: '購入記録', icon: ShoppingCart, angle: 18, type: 'purchase' },
+              ].map((item, index) => {
+                const radius = 130;
+                const angleRad = item.angle * (Math.PI / 180);
+                const x = Math.cos(angleRad) * radius;
+                const y = Math.sin(angleRad) * radius;
+                return (
+                  <div
+                    key={index}
+                    className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
+                    style={{
+                      left: `calc(50% + ${x}px)`,
+                      top: `calc(50% - ${y}px)`,
+                      transform: 'translate(-50%, -50%)',
+                      animationDelay: `${index * 0.06}s`,
+                      animationFillMode: 'both'
+                    }}
+                  >
+                    <button
+                      onClick={() => handleMenuClick(item.type)}
+                      className="w-[72px] h-[72px] bg-gradient-to-b from-white to-stone-50 rounded-full flex items-center justify-center shadow-[0_6px_24px_rgba(0,0,0,0.18)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105 border-2 border-white/80"
+                    >
+                      <item.icon className="w-8 h-8 text-emerald-600" />
+                    </button>
+                    <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] whitespace-nowrap">{item.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      }
+
+      {/* --- BOTTOM NAVIGATION --- */}
+      {
+        !selectedPost && (
+          <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-stone-200 px-2 pt-2 pb-safe flex justify-around items-end z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ minHeight: '70px' }}>
+            <button
+              onClick={() => setActiveTab('home')}
+              className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'}`}
+            >
+              <Home className="w-7 h-7 mb-0.5" />
+              <span className="text-[11px] font-bold">ホーム</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('community')}
+              className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'}`}
+            >
+              <Users className="w-7 h-7 mb-0.5" />
+              <span className="text-[10px] font-bold">コミュニティ</span>
+            </button>
+
+            {/* Floating Action Button for Record (Post Menu Trigger) */}
+            <div className="relative -top-5 flex flex-col items-center">
+              <button
+                id="record-button"
+                onClick={() => setShowPostMenu(true)}
+                className="w-[64px] h-[64px] rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transition-transform active:scale-90 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"
+              >
+                <Plus className="w-8 h-8" />
+              </button>
+              <span className="text-[10px] font-bold text-stone-500 mt-1">記録</span>
+            </div>
+
+            <button
+              onClick={() => setActiveTab('search')}
+              className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'}`}
+            >
+              <Search className="w-7 h-7 mb-0.5" />
+              <span className="text-[11px] font-bold">検索</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'}`}
+            >
+              <User className="w-7 h-7 mb-0.5" />
+              <span className="text-[10px] font-bold">マイページ</span>
+            </button>
+          </nav>
+        )
+      }
+
+      {/* Settings Modal */}
+      {
+        showSettingsModal && (
+          <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+              <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
+                <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
+                  <Settings className="w-5 h-5 text-stone-500" />
+                  設定・サポート
+                </h2>
+                <button onClick={() => setShowSettingsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
+                  <X className="w-5 h-5 text-stone-600" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto space-y-4 flex-1">
+                <div className="space-y-2">
+                  <h3 className="font-bold text-stone-700 text-sm pl-1">アカウント設定</h3>
+                  <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      メールアドレスの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      電話番号の変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      パスワードの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <h3 className="font-bold text-stone-700 text-sm pl-1">サポート</h3>
+                  <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      バグを報告する <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      改善の要望を送る <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                    <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                      ヘルプセンター <ChevronRight className="w-4 h-4 text-stone-400" />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-4 pb-8">
+                  <button className="w-full py-3 text-sm font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                    ログアウト
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      }
 
       {/* Notifications Modal */}
-      {showNotificationsModal && (
-        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
-          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
-            <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
-              <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
-                <Bell className="w-5 h-5 text-stone-500" />
-                お知らせ
-              </h2>
-              <button onClick={() => setShowNotificationsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
-                <X className="w-5 h-5 text-stone-600" />
-              </button>
-            </div>
-            <div className="p-0 overflow-y-auto flex-1 bg-stone-50">
-              <div className="divide-y divide-stone-100">
-                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors relative">
-                  <div className="w-2 h-2 bg-red-500 rounded-full absolute top-5 left-2"></div>
-                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
-                    <AlertCircle className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-stone-800 font-bold mb-1 leading-tight">あなたと同じ「トマト」を栽培している農家さんが新しい資材レビューを投稿しました</p>
-                    <p className="text-xs text-stone-500">2時間前</p>
-                  </div>
-                </div>
-
-                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
-                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <UserPlus className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm text-stone-800 mb-1 leading-tight"><strong>田中ファーム</strong>さんからフォローリクエストが届きました</p>
-                    <div className="flex gap-2 mt-2">
-                      <button className="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-full">承認する</button>
-                      <button className="bg-stone-200 text-stone-700 text-xs font-bold px-4 py-1.5 rounded-full">削除</button>
+      {
+        showNotificationsModal && (
+          <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
+            <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+              <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
+                <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-stone-500" />
+                  お知らせ
+                </h2>
+                <button onClick={() => setShowNotificationsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
+                  <X className="w-5 h-5 text-stone-600" />
+                </button>
+              </div>
+              <div className="p-0 overflow-y-auto flex-1 bg-stone-50">
+                <div className="divide-y divide-stone-100">
+                  <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors relative">
+                    <div className="w-2 h-2 bg-red-500 rounded-full absolute top-5 left-2"></div>
+                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                      <AlertCircle className="w-5 h-5 text-emerald-600" />
                     </div>
-                    <p className="text-xs text-stone-500 mt-2">昨日</p>
+                    <div>
+                      <p className="text-sm text-stone-800 font-bold mb-1 leading-tight">あなたと同じ「トマト」を栽培している農家さんが新しい資材レビューを投稿しました</p>
+                      <p className="text-xs text-stone-500">2時間前</p>
+                    </div>
                   </div>
-                </div>
 
-                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
-                  <div className="w-10 h-10 bg-orange-100 rounded-full flex flex-col items-center justify-center flex-shrink-0">
-                    <FileText className="w-5 h-5 text-orange-600" />
+                  <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <UserPlus className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-stone-800 mb-1 leading-tight"><strong>田中ファーム</strong>さんからフォローリクエストが届きました</p>
+                      <div className="flex gap-2 mt-2">
+                        <button className="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-full">承認する</button>
+                        <button className="bg-stone-200 text-stone-700 text-xs font-bold px-4 py-1.5 rounded-full">削除</button>
+                      </div>
+                      <p className="text-xs text-stone-500 mt-2">昨日</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-stone-800 mb-1 leading-tight">過去に使用した「ダコニール」に関する新しい知見が追加されました</p>
-                    <p className="text-xs text-stone-500">3日前</p>
+
+                  <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
+                    <div className="w-10 h-10 bg-orange-100 rounded-full flex flex-col items-center justify-center flex-shrink-0">
+                      <FileText className="w-5 h-5 text-orange-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-stone-800 mb-1 leading-tight">過去に使用した「ダコニール」に関する新しい知見が追加されました</p>
+                      <p className="text-xs text-stone-500">3日前</p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Custom Styles for Animation */}
       <style>{`
@@ -2068,6 +2226,6 @@ export default function App() {
   padding - bottom: env(safe - area - inset - bottom, 20px);
 }
 `}</style>
-    </div>
+    </div >
   );
 }
