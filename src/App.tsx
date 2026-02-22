@@ -1,8 +1,10 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic, Settings, Bell, Globe, AlertCircle, ShoppingCart, Check } from 'lucide-react';
+import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic, Settings, Bell, Globe, AlertCircle, ShoppingCart, Check, Mail, Phone, Eye, EyeOff } from 'lucide-react';
 import { subDays, isAfter } from 'date-fns';
+import { useAuth } from './contexts/AuthContext';
+import { supabase } from './lib/supabase';
 
 /**
  * MOCK DATA
@@ -196,6 +198,17 @@ const Confetti = () => {
 };
 
 export default function App() {
+  const { user, profile, loading, signUp, signIn, signInWithGoogle, signOut } = useAuth();
+
+  // Auth UI State
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [authName, setAuthName] = useState('');
+  const [authError, setAuthError] = useState('');
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
   // State
   const [hasPosted, setHasPosted] = useState(false);  // --- LOCAL STATE ---
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'community', 'add', 'messages', 'mypage'
@@ -358,7 +371,7 @@ export default function App() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       // モードに応じたタイトル/資材名の生成
       let finalMaterial = "日常の投稿";
       if (postMode === 'review') finalMaterial = reviewMaterial;
@@ -393,6 +406,23 @@ export default function App() {
         comments: 0,
         community: '未設定'
       };
+
+      // Save to Supabase
+      if (user) {
+        await supabase.from('posts').insert({
+          author_id: user.id,
+          type: postMode,
+          category: postMode === 'review' ? selectedCategory : 'その他',
+          material: finalMaterial || '未設定',
+          rating: postMode === 'review' ? reviewRating : null,
+          content: postMode === 'review' ? finalReviewText : postText,
+          image_url: photoPreview || null,
+          tags: postTags.length > 0 ? postTags : ['新規投稿'],
+          visibility: postVisibility === 'draft' ? 'draft' : (visibleCommunities.length > 0 ? 'community' : 'public'),
+          is_draft: postVisibility === 'draft',
+          community: visibleCommunities.join(', ') || '未設定'
+        });
+      }
 
       if (postVisibility === 'draft') {
         setDrafts([newPost, ...drafts]);
@@ -682,6 +712,152 @@ export default function App() {
       </div>
     </div>
   );
+
+  // Supabase data fetch effects
+  useEffect(() => {
+    if (!user) return;
+    // Fetch posts from Supabase
+    const fetchPosts = async () => {
+      const { data } = await supabase
+        .from('posts')
+        .select('*, profiles:author_id(name, avatar_url, is_certified)')
+        .eq('is_draft', false)
+        .order('created_at', { ascending: false })
+        .limit(50);
+      if (data && data.length > 0) {
+        const mapped = data.map((p: any) => ({
+          id: p.id,
+          type: p.type,
+          author: { id: p.author_id, name: p.profiles?.name || '不明', avatarUrl: p.profiles?.avatar_url || '', isCertified: p.profiles?.is_certified || false },
+          attribute: '',
+          category: p.category,
+          material: p.material,
+          rating: p.rating,
+          timestamp: new Date(p.created_at).toLocaleDateString('ja-JP'),
+          image: p.image_url || 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?q=80&w=600&auto=format&fit=crop',
+          content: p.content,
+          tags: p.tags || [],
+          likes: 0,
+          comments: 0,
+          community: p.community || ''
+        }));
+        setPosts(prev => [...mapped, ...INITIAL_POSTS]);
+      }
+    };
+    fetchPosts();
+  }, [user]);
+
+  // Auth handler
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthLoading(true);
+    try {
+      if (authMode === 'register') {
+        await signUp(authEmail, authPassword, authName);
+      } else {
+        await signIn(authEmail, authPassword);
+      }
+    } catch (err: any) {
+      setAuthError(err.message || '認証エラーが発生しました');
+    }
+    setAuthLoading(false);
+  };
+
+  // Loading screen
+  if (loading) {
+    return (
+      <div className="flex flex-col h-screen bg-stone-100 font-sans text-stone-800 max-w-md mx-auto shadow-2xl items-center justify-center">
+        <Sprout className="w-12 h-12 text-emerald-600 animate-pulse mb-4" />
+        <p className="text-stone-500 font-bold">読み込み中...</p>
+      </div>
+    );
+  }
+
+  // Auth screen
+  if (!user) {
+    return (
+      <div className="flex flex-col h-screen bg-gradient-to-b from-emerald-600 to-emerald-800 font-sans text-white max-w-md mx-auto shadow-2xl overflow-y-auto">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 min-h-[100vh]">
+          {/* Logo */}
+          <div className="mb-8 text-center">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+              <Sprout className="w-10 h-10 text-white" />
+            </div>
+            <h1 className="text-3xl font-black tracking-wider mb-1">AgriReview</h1>
+            <p className="text-emerald-200 text-sm">農家のための資材レビュープラットフォーム</p>
+          </div>
+
+          {/* Auth Form */}
+          <div className="w-full bg-white rounded-2xl p-6 shadow-2xl text-stone-800">
+            <div className="flex bg-stone-100 p-1 rounded-xl mb-6">
+              <button onClick={() => { setAuthMode('login'); setAuthError(''); }} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${authMode === 'login' ? 'bg-white shadow-sm text-emerald-700' : 'text-stone-500'}`}>ログイン</button>
+              <button onClick={() => { setAuthMode('register'); setAuthError(''); }} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all ${authMode === 'register' ? 'bg-white shadow-sm text-emerald-700' : 'text-stone-500'}`}>新規登録</button>
+            </div>
+
+            <form onSubmit={handleAuth} className="space-y-4">
+              {authMode === 'register' && (
+                <div>
+                  <label className="block text-xs font-bold text-stone-500 mb-1">ユーザー名</label>
+                  <input type="text" value={authName} onChange={e => setAuthName(e.target.value)} placeholder="例: 田中太郎" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" required />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-bold text-stone-500 mb-1">メールアドレス</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <input type="email" value={authEmail} onChange={e => setAuthEmail(e.target.value)} placeholder="example@email.com" className="w-full pl-11 pr-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" required />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-stone-500 mb-1">パスワード</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                  <input type={showPassword ? 'text' : 'password'} value={authPassword} onChange={e => setAuthPassword(e.target.value)} placeholder="6文字以上" className="w-full pl-11 pr-12 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm" required minLength={6} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400">
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              </div>
+
+              {authError && (
+                <div className="bg-red-50 border border-red-200 text-red-600 text-xs font-bold p-3 rounded-lg flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  {authError}
+                </div>
+              )}
+
+              <button type="submit" disabled={authLoading} className="w-full py-3.5 bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:bg-emerald-700 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                {authLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : null}
+                {authMode === 'register' ? '新規登録' : 'ログイン'}
+              </button>
+            </form>
+
+            <div className="flex items-center gap-3 my-5">
+              <div className="flex-1 border-t border-stone-200"></div>
+              <span className="text-xs text-stone-400 font-bold">または</span>
+              <div className="flex-1 border-t border-stone-200"></div>
+            </div>
+
+            <div className="space-y-3">
+              <button onClick={() => signInWithGoogle()} className="w-full py-3 bg-white border-2 border-stone-200 text-stone-700 font-bold rounded-xl hover:bg-stone-50 active:scale-95 transition-all flex items-center justify-center gap-3 text-sm">
+                <svg className="w-5 h-5" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" /><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" /><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" /><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" /></svg>
+                Googleでログイン
+              </button>
+              <button className="w-full py-3 bg-[#06C755] text-white font-bold rounded-xl hover:bg-[#05b04d] active:scale-95 transition-all flex items-center justify-center gap-3 text-sm">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="white"><path d="M19.365 9.863c.349 0 .63.285.63.631 0 .348-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .349-.281.63-.63.63h-2.386c-.348 0-.63-.281-.63-.63V9.863c0-.349.282-.63.63-.63h2.386zm-3.855 0c.348 0 .63.285.63.631v3.024c0 .349-.282.63-.63.63-.349 0-.63-.281-.63-.63V9.863c0-.349.281-.63.63-.63zm-2.77 0c.349 0 .63.285.63.631 0 .195-.092.376-.24.493l-2.21 2.29h1.82c.349 0 .63.283.63.63 0 .349-.281.63-.63.63H10.36c-.348 0-.63-.281-.63-.63 0-.196.092-.378.24-.494l2.21-2.289h-1.82c-.349 0-.63-.282-.63-.63 0-.348.281-.63.63-.63h2.38zm-5.07 0c.349 0 .63.285.63.631v3.024c0 .349-.281.63-.63.63-.348 0-.63-.281-.63-.63v-2.394H5.715c-.349 0-.63-.282-.63-.63 0-.349.281-.63.63-.63h1.955zM12 1C5.373 1 0 5.373 0 12c0 5.628 3.874 10.35 9.098 11.647.197.053.25-.085.25-.19v-2.22c-3.697.804-4.477-1.587-4.477-1.587-.605-1.536-1.477-1.945-1.477-1.945-1.208-.825.091-.809.091-.809 1.335.094 2.037 1.371 2.037 1.371 1.187 2.034 3.115 1.447 3.874 1.107.12-.86.465-1.447.846-1.78-2.953-.335-6.058-1.477-6.058-6.577 0-1.453.519-2.641 1.371-3.573-.137-.335-.595-1.69.131-3.522 0 0 1.118-.358 3.663 1.364 1.062-.296 2.202-.444 3.335-.449 1.132.005 2.273.153 3.335.449 2.545-1.722 3.661-1.364 3.661-1.364.727 1.832.269 3.187.132 3.522.854.932 1.371 2.12 1.371 3.573 0 5.114-3.11 6.238-6.071 6.568.478.412.903 1.222.903 2.464v3.654c0 .107.052.245.254.189C20.131 22.344 24 17.624 24 12c0-6.627-5.373-12-12-12z" /></svg>
+                LINEでログイン
+              </button>
+            </div>
+          </div>
+
+          <p className="text-emerald-200 text-[10px] mt-6 text-center">
+            登録することで利用規約とプライバシーポリシーに同意したものとみなされます
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-stone-100 font-sans text-stone-800 max-w-md mx-auto shadow-2xl overflow-hidden relative">
