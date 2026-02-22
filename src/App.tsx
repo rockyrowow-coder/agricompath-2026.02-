@@ -277,6 +277,13 @@ export default function App() {
   // Community join/leave state
   const [joinedCommunities, setJoinedCommunities] = useState<string[]>(['トマト部', '水稲部']);
 
+  // Toast notification for coming soon features
+  const [toastMessage, setToastMessage] = useState('');
+  const showComingSoon = (feature?: string) => {
+    setToastMessage(feature ? `${feature}は準備中です` : 'この機能は準備中です');
+    setTimeout(() => setToastMessage(''), 2500);
+  };
+
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
   // const [selectedCommunity, setSelectedCommunity] = useState(null);
@@ -987,14 +994,14 @@ export default function App() {
                     { name: '山田農園', img: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=100&auto=format&fit=crop', loc: '長野県', crop: 'レタス' },
                     { name: '佐藤ファーム', img: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop', loc: '北海道', crop: 'かぼちゃ' },
                     ].map((u, i) => (
-                      <button key={i} onClick={() => setViewedUser({ name: u.name, avatarUrl: u.img, isCertified: i === 0, selfPromo: u.crop + 'を中心に栽培しています', location: u.loc, crops: [u.crop], experience: '専業', posts: posts.filter(p => p.author?.name === u.name).length > 0 ? posts.filter(p => p.author?.name === u.name) : posts.slice(0, 2), followersCount: 80 + i * 30, followingCount: 20 + i * 5 })} className="flex flex-col items-center min-w-[68px] group">
+                      <button key={i} onClick={() => showComingSoon('ハイライト')} className="flex flex-col items-center min-w-[68px] group">
                         <div className="w-16 h-16 rounded-full p-[2px] bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 mb-1">
                           <img src={u.img} className="w-full h-full rounded-full object-cover border-2 border-white" alt="" />
                         </div>
                         <span className="text-[10px] font-bold text-stone-600 truncate w-full text-center">{u.name}</span>
                       </button>
                     ))}
-                    <button className="flex flex-col items-center min-w-[68px]">
+                    <button onClick={() => showComingSoon('ハイライト')} className="flex flex-col items-center min-w-[68px]">
                       <div className="w-16 h-16 rounded-full bg-stone-100 border-2 border-dashed border-stone-300 flex items-center justify-center mb-1">
                         <Plus className="w-6 h-6 text-stone-400" />
                       </div>
@@ -2533,43 +2540,29 @@ export default function App() {
         )
       }
 
+      {/* Toast Notification for Coming Soon */}
+      {toastMessage && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[60] animate-bounce-in">
+          <div className="bg-stone-800 text-white px-6 py-3 rounded-full shadow-2xl text-sm font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-yellow-400" />
+            {toastMessage}
+          </div>
+        </div>
+      )}
+
       {/* Custom Styles for Animation */}
       <style>{`
-@keyframes pop -in {
-  0% { transform: scale(0.9); opacity: 0; }
-          100% { transform: scale(1); opacity: 1; }
-}
-  .animate - pop -in {
-    animation: pop -in 0.3s cubic- bezier(0.175, 0.885, 0.32, 1.275);
-        }
-@keyframes bounce -in {
-  0% { transform: scale(0.3); opacity: 0; }
-          50% { transform: scale(1.05); opacity: 1; }
-          70% { transform: scale(0.9); }
-          100% { transform: scale(1); }
-}
-  .animate - bounce -in {
-    animation: bounce -in 0.6s cubic- bezier(0.215, 0.610, 0.355, 1.000);
-        }
-@keyframes fade -in {
-  from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate - fade -in {
-  animation: fade -in 0.2s ease- out forwards;
-        }
-@keyframes slide - up {
-          from { transform: translateY(100 %); }
-          to { transform: translateY(0); }
-}
-        .animate - slide - up {
-  animation: slide - up 0.3s cubic - bezier(0.16, 1, 0.3, 1) forwards;
-}
+        @keyframes pop-in { 0% { transform: scale(0); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        @keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes bounce-in { 0% { transform: scale(0.5); opacity: 0; } 50% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+        .animate-pop-in { animation: pop-in 0.3s ease-out; }
+        .animate-fade-in { animation: fade-in 0.3s ease-out; }
+        .animate-bounce-in { animation: bounce-in 0.4s ease-out; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         /* Safari safe area padding */
-        .pb - safe {
-  padding - bottom: env(safe - area - inset - bottom, 20px);
-}
-`}</style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 20px); }
+      `}</style>
     </div >
   );
 }
