@@ -1,5 +1,5 @@
-// @ts-nocheck
 /* eslint-disable */
+// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic } from 'lucide-react';
 import { subDays, isAfter } from 'date-fns';
@@ -207,8 +207,6 @@ export default function App() {
 
   // UI Ext State
   const [searchTab, setSearchTab] = useState('materials'); // 'materials', 'farmers'
-  const [reviewTiming, setReviewTiming] = useState('');
-  const [reviewTemp, setReviewTemp] = useState('');
 
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
@@ -1252,12 +1250,7 @@ export default function App() {
                     if (postMode === 'diary') return !materialName || !workTime;
                     return !reviewText && !photoPreview;
                   })()}
-                  className={`w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform
-                    ${(true) // CSS側の disabled で制御されるため、ここは常に true 評価で基本色を当てる
-                      ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:translate-y-1 shadow-emerald-200 disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed'
-                      : ''
-                    }
-`}
+                  className="w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform bg-emerald-600 text-white hover:bg-emerald-700 active:translate-y-1 shadow-emerald-200 disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
                   記録して共有
