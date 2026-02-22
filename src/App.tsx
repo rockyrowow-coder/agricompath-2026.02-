@@ -1,7 +1,7 @@
 /* eslint-disable */
 // @ts-nocheck
 import React, { useState, useEffect } from 'react';
-import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic } from 'lucide-react';
+import { Camera, Star, Send, Lock, Search, Home, Plus, User, X, ChevronRight, Sprout, Users, FileText, BadgeCheck, Filter, MessageSquare, Medal, ThumbsUp, Hash, UserPlus, Award, Images, ClipboardList, Tractor, PenTool, ArrowLeft, MapPin, Heart, MessageCircle, CheckCircle2, Flame, Mic, Settings, Bell, Globe, AlertCircle } from 'lucide-react';
 import { subDays, isAfter } from 'date-fns';
 
 /**
@@ -207,6 +207,9 @@ export default function App() {
 
   // UI Ext State
   const [searchTab, setSearchTab] = useState('materials'); // 'materials', 'farmers'
+  const [homeTab, setHomeTab] = useState('recommended'); // 'recommended', 'ranking', 'news'
+  const [profilePostFilter, setProfilePostFilter] = useState('all'); // 'all', 'photo', 'album', 'review', 'blog', 'harvest'
+  const [profilePostSort, setProfilePostSort] = useState('newest'); // 'newest', 'likes'
 
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
@@ -283,6 +286,10 @@ export default function App() {
   const [postText, setPostText] = useState(''); // For other post types
   const [harvestAmount, setHarvestAmount] = useState(''); // For harvest
   const [workTime, setWorkTime] = useState(''); // For diary
+  const [postVisibility, setPostVisibility] = useState('community'); // 'community', 'public', 'followers', 'draft'
+
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -420,7 +427,18 @@ export default function App() {
   /* DUMMY_COMMENT_1 */
   // Public Profile Component
   const PublicProfileView = ({ user, onClose }: { user: any, onClose: any }) => {
-    const userPosts = posts.filter(p => p.author.id === user.id);
+    const [filterCategory, setFilterCategory] = useState('all');
+    const [sortOrder, setSortOrder] = useState('newest');
+
+    let userPosts = posts.filter(p => p.author.id === user.id);
+    if (filterCategory !== 'all') {
+      userPosts = userPosts.filter(p => p.type === filterCategory);
+    }
+    if (sortOrder === 'likes') {
+      userPosts.sort((a, b) => b.likes - a.likes);
+    } else {
+      userPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }
 
     return (
       <div className="fixed inset-0 z-50 bg-stone-100 overflow-y-auto animate-slide-up">
@@ -492,52 +510,32 @@ export default function App() {
 
         {/* User's Posts */}
         <div className="pb-safe">
-          <div className="bg-white px-4 py-3 border-b border-stone-200 shadow-sm sticky top-14 z-10 flex items-center">
-            <FileText className="w-4 h-4 text-stone-500 mr-2" />
-            <h3 className="font-bold text-stone-800 text-sm">投稿一覧</h3>
+          <div className="bg-white px-4 py-3 border-b border-stone-200 shadow-sm sticky top-14 z-10 flex flex-col gap-2">
+            <div className="flex items-center">
+              <FileText className="w-4 h-4 text-stone-500 mr-2" />
+              <h3 className="font-bold text-stone-800 text-sm">投稿一覧</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-stone-400" />
+              <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="bg-stone-50 border-none text-xs font-bold text-stone-700 outline-none rounded-lg px-2 py-1">
+                <option value="all">すべて</option>
+                <option value="photo">写真</option>
+                <option value="album">アルバム</option>
+                <option value="review">レビュー</option>
+                <option value="blog">ブログ</option>
+                <option value="harvest">収穫</option>
+              </select>
+              <div className="flex-1"></div>
+              <select value={sortOrder} onChange={e => setSortOrder(e.target.value)} className="bg-stone-50 border-none text-xs font-bold text-stone-700 outline-none rounded-lg px-2 py-1">
+                <option value="newest">新しい順</option>
+                <option value="likes">いいね順</option>
+              </select>
+            </div>
           </div>
 
-          {userPosts.map(post => (
-            <div key={post.id} className="bg-white mb-2 shadow-sm border-t border-b border-stone-100 p-3" onClick={() => setSelectedPost(post)}>
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center">
-                  <div className="relative">
-                    <img src={post.author.avatarUrl} alt={post.author.name} className="w-8 h-8 rounded-full object-cover mr-2" />
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm text-stone-800 flex items-center gap-1">
-                      {post.author.name}
-                    </div>
-                    <div className="text-[10px] text-stone-500">{post.timestamp}</div>
-                  </div>
-                </div>
-                <span className="text-xs text-stone-500 bg-stone-100 px-2 py-1 rounded-md">{post.community}</span>
-              </div>
-              {post.type === 'album' && post.imageUrls && post.imageUrls.length > 0 && (
-                <div className="grid grid-cols-2 gap-1 mb-2">
-                  {post.imageUrls.slice(0, 4).map((url, index) => (
-                    <div key={index} className="relative aspect-square">
-                      <img src={url} alt={`album - ${index}`} className="w-full h-full object-cover rounded-md" />
-                    </div>
-                  ))}
-                </div>
-              )}
-              {post.type !== 'album' && post.image && (
-                <img src={post.image} alt="post" className="w-full h-48 object-cover rounded-lg mb-2" />
-              )}
-              <p className="text-sm text-stone-700 mb-2 line-clamp-2">{post.content}</p>
-              <div className="flex items-center text-stone-500 space-x-4">
-                <div className="flex items-center space-x-1">
-                  <Heart className="w-4 h-4" />
-                  <span className="text-xs">{post.likes}</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <MessageCircle className="w-4 h-4" />
-                  <span className="text-xs">{post.comments}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+          <div className="p-4 space-y-4">
+            {userPosts.map(post => renderPostCard(post))}
+          </div>
           {userPosts.length === 0 && (
             <div className="flex flex-col items-center justify-center py-12 text-stone-400 bg-white">
               <FileText className="w-12 h-12 mb-4" />
@@ -548,6 +546,82 @@ export default function App() {
       </div>
     );
   };
+
+  const renderPostCard = (post: any, index?: number, isRanking: boolean = false) => (
+    <div
+      key={post.id}
+      onClick={() => handlePostClick(post)}
+      className="bg-white rounded-2xl shadow-sm overflow-hidden active:scale-95 transition-transform duration-200 cursor-pointer border border-stone-100 relative mb-4"
+    >
+      {isRanking && index !== undefined && (
+        <div className="absolute top-2 left-2 z-20 w-8 h-8 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-full flex items-center justify-center text-white font-bold shadow-md border-2 border-white">
+          {index + 1}
+        </div>
+      )}
+      <div className="relative h-40 bg-stone-200">
+        <img src={post.image} alt={post.material || post.title || '投稿画像'} className="w-full h-full object-cover" />
+        <div className={`absolute ${isRanking ? 'top-2 right-2' : 'top-2 left-2'} bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm flex items-center gap-1 z-10`}>
+          {(() => {
+            const info = getPostTypeInfo(post.type);
+            const Icon = info.icon;
+            return (
+              <>
+                <Icon className={`w-3 h-3 ${info.color} ${post.type === 'review' ? 'fill-current' : ''}`} />
+                {info.label}
+              </>
+            );
+          })()}
+        </div>
+        {post.type === 'review' && post.category && (
+          <div className={`absolute ${isRanking ? 'bottom-2 right-2' : 'top-2 right-2'} bg-emerald-500/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm z-10`}>
+            {post.category}
+          </div>
+        )}
+        {post.type === 'review' && post.rating && (
+          <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center shadow-sm z-10">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className={`w-3 h-3 ${i < post.rating ? 'fill-yellow-400 text-yellow-400' : 'text-stone-300'}`} />
+            ))}
+            <span className="ml-1 text-xs font-bold text-stone-700">{post.rating}.0</span>
+          </div>
+        )}
+        {!hasPosted && post.author?.id !== currentUser.id && post.type === "review" && (
+          <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-black/40 z-20" onClick={(e) => { e.stopPropagation(); setShowLockModal(true); }}>
+            <span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">投稿してロック解除</span>
+          </div>
+        )}
+      </div>
+      <div className="p-4">
+        <div className="flex justify-between items-start mb-1">
+          <h3 className="font-bold text-lg text-stone-800 leading-tight">{post.material || post.title || post.content?.substring(0, 15)}</h3>
+          <span className="text-[10px] text-stone-400">{post.timestamp}</span>
+        </div>
+        {post.author && (
+          <div className="flex items-center gap-2 mb-2">
+            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
+              <img src={post.author.avatarUrl} alt={post.author.name} className="w-full h-full object-cover" />
+            </div>
+            <span className="text-xs text-stone-600 font-medium cursor-pointer hover:underline" onClick={(e) => {
+              e.stopPropagation();
+              setViewedUser(post.author);
+            }}>{post.author.name}</span>
+            {renderUserBadge(post.author.isCertified, post.likes)}
+          </div>
+        )}
+        <p className={`text-sm text-stone-600 line-clamp-2 ${!hasPosted && post.author?.id !== currentUser.id && post.type === "review" ? "blur-sm select-none" : ""}`}>
+          {post.content}
+        </p>
+        <div className="mt-3 flex gap-4 text-stone-400 text-xs font-medium">
+          <div className="flex items-center gap-1">
+            <ThumbsUp className="w-3 h-3" /> {post.likes}
+          </div>
+          <div className="flex items-center gap-1">
+            <MessageSquare className="w-3 h-3" /> {post.comments}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen bg-stone-100 font-sans text-stone-800 max-w-md mx-auto shadow-2xl overflow-hidden relative">
@@ -613,7 +687,7 @@ export default function App() {
 
       {/* --- OVERLAYS --- */}
       <header className="bg-emerald-600 text-white p-4 shadow-md z-10 flex justify-between items-center">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={() => setShowSettingsModal(true)} role="button">
           <Sprout className="w-6 h-6" />
           <h1 className="font-bold text-lg tracking-wider">AgriReview</h1>
         </div>
@@ -623,6 +697,13 @@ export default function App() {
               閲覧制限中
             </div>
           )}
+          <button onClick={() => setShowNotificationsModal(true)} className="relative p-1 hover:bg-emerald-700 rounded-full transition-colors">
+            <Bell className="w-6 h-6" />
+            <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 border-2 border-emerald-600 rounded-full"></span>
+          </button>
+          <button onClick={() => setShowSettingsModal(true)} className="p-1 hover:bg-emerald-700 rounded-full transition-colors">
+            <Settings className="w-6 h-6" />
+          </button>
         </div>
       </header>
 
@@ -632,114 +713,105 @@ export default function App() {
         {/* TIMELINE VIEW (Home) */}
         {activeTab === 'home' && !selectedPost && (
           <div className="space-y-4">
-
-            {/* 今日のおすすめ (Horizontal Scroll) */}
-            <div className="bg-white p-4 pb-6 shadow-sm border-b border-stone-100">
-              <div className="flex items-center gap-2 mb-3">
-                <Flame className="w-5 h-5 text-orange-500" />
-                <h2 className="font-bold text-stone-700">今日のおすすめ</h2>
-              </div>
-              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
-                {RECOMMENDED_ITEMS.map(item => (
-                  <div key={item.id} className="min-w-[160px] bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-xl border border-emerald-100 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow">
-                    <span className="text-[10px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded-full mb-2 inline-block shadow-sm">{item.type}</span>
-                    <h3 className="font-bold text-sm text-stone-800 mb-1 leading-tight">{item.name}</h3>
-                    <p className="text-[10px] text-stone-500 line-clamp-2">{item.desc}</p>
-                  </div>
-                ))}
+            {/* Home Sub Tabs */}
+            <div className="px-4 pt-4">
+              <div className="flex bg-stone-100 p-1 rounded-xl">
+                <button onClick={() => setHomeTab('recommended')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'recommended' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>おすすめ</button>
+                <button onClick={() => setHomeTab('ranking')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'ranking' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ランキング</button>
+                <button onClick={() => setHomeTab('news')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'news' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ニュース</button>
               </div>
             </div>
 
-            {/* Timeline */}
-            <div className="p-4 space-y-4 pt-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                <h2 className="font-bold text-stone-700">おすすめの投稿</h2>
-              </div>
-              {posts.map((post) => (
-                <div
-                  key={post.id}
-                  onClick={() => handlePostClick(post)}
-                  className="bg-white rounded-2xl shadow-sm overflow-hidden active:scale-95 transition-transform duration-200 cursor-pointer border border-stone-100"
-                >
-                  {/* Image Section */}
-                  <div className="relative h-40 bg-stone-200">
-                    <img src={post.image} alt={post.material} className="w-full h-full object-cover" />
-
-                    {/* Badge: Review or Post */}
-                    <div className="absolute top-2 left-2 bg-black/50 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm flex items-center gap-1">
-                      {(() => {
-                        const info = getPostTypeInfo(post.type);
-                        const Icon = info.icon;
-                        return (
-                          <>
-                            <Icon className={`w-3 h-3 ${info.color} ${post.type === 'review' ? 'fill-current' : ''}`} />
-                            {info.label}
-                          </>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Category Label */}
-                    {post.type === 'review' && (
-                      <div className="absolute top-2 right-2 bg-emerald-500/90 backdrop-blur px-2 py-1 rounded text-[10px] font-bold text-white shadow-sm">
-                        {post.category}
-                      </div>
-                    )}
-
-                    {/* Rating Badge (Only for reviews) */}
-                    {post.type === 'review' && post.rating && (
-                      <div className="absolute bottom-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded-lg flex items-center shadow-sm">
-                        {[...Array(5)].map((_, i) => (
-                          <Star key={i} className={`w-3 h-3 ${i < post.rating ? 'fill-yellow-400 text-yellow-400' : 'text-stone-300'}`} />
-                        ))}
-                        <span className="ml-1 text-xs font-bold text-stone-700">{post.rating}.0</span>
-                      </div>
-                    )}
-
-                    {/* Lock Overlay for Non-Posters */}
-                    {!hasPosted && post.author.id !== currentUser.id && post.type === "review" && (
-                      <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-black/40" onClick={() => {/* ... */ }}>
-                        <span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">投稿してロック解除</span>
-                      </div>
-                    )}
+            {homeTab === 'recommended' && (
+              <>
+                {/* 今日のおすすめ (Horizontal Scroll) */}
+                <div className="bg-white p-4 pb-6 shadow-sm border-b border-stone-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Flame className="w-5 h-5 text-orange-500" />
+                    <h2 className="font-bold text-stone-700">おすすめの資材・農法</h2>
                   </div>
-
-                  {/* Content Section */}
-                  <div className="p-4">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-lg text-stone-800 leading-tight">{post.material}</h3>
-                      <span className="text-[10px] text-stone-400">{post.timestamp}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden">
-                        <img src={post.author.avatarUrl} alt={post.author.name} className="w-full h-full object-cover" />
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                    {RECOMMENDED_ITEMS.map(item => (
+                      <div key={item.id} className="min-w-[160px] bg-gradient-to-br from-emerald-50 to-teal-50 p-3 rounded-xl border border-emerald-100 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow">
+                        <span className="text-[10px] font-bold text-emerald-600 bg-white px-2 py-0.5 rounded-full mb-2 inline-block shadow-sm">{item.type}</span>
+                        <h3 className="font-bold text-sm text-stone-800 mb-1 leading-tight">{item.name}</h3>
+                        <p className="text-[10px] text-stone-500 line-clamp-2">{item.desc}</p>
                       </div>
-                      <span className="text-xs text-stone-600 font-medium cursor-pointer hover:underline" onClick={(e) => {
-                        e.stopPropagation();
-                        setViewedUser(post.author);
-                      }}>{post.author.name}</span>
-                      {renderUserBadge(post.author.isCertified, post.likes)}
-                    </div>
-
-                    <p className={`text-sm text-stone-600 line-clamp-2 ${!hasPosted && post.author.id !== currentUser.id && post.type === "review" ? "blur-sm select-none" : ""}`}>
-                      {post.content}
-                    </p>
-
-                    {/* Action indicators */}
-                    <div className="mt-3 flex gap-4 text-stone-400 text-xs font-medium">
-                      <div className="flex items-center gap-1">
-                        <ThumbsUp className="w-3 h-3" /> {post.likes}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare className="w-3 h-3" /> {post.comments}
-                      </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+
+                <div className="bg-white p-4 pb-6 shadow-sm border-b border-stone-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <UserPlus className="w-5 h-5 text-blue-500" />
+                    <h2 className="font-bold text-stone-700">おすすめの農家</h2>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="min-w-[120px] bg-white p-3 rounded-xl border border-stone-100 flex-shrink-0 cursor-pointer hover:shadow-md transition-shadow flex flex-col items-center text-center pb-4">
+                        <img src={`https://i.pravatar.cc/150?img=${i + 10}`} alt="Farmer" className="w-12 h-12 rounded-full mb-2 object-cover border-2 border-emerald-100" />
+                        <h3 className="font-bold text-xs text-stone-800">注目の農家 {i}</h3>
+                        <p className="text-[10px] text-stone-500 mt-0.5">新規就農 / トマト</p>
+                        <button className="mt-2 text-[10px] bg-stone-100 text-stone-600 px-3 py-1 rounded-full font-bold hover:bg-stone-200">フォロー</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Timeline */}
+                <div className="p-4 space-y-4 pt-0">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
+                    <h2 className="font-bold text-stone-700">おすすめの投稿</h2>
+                  </div>
+                  {/* mix of posts */}
+                  {posts.map((post) => renderPostCard(post))}
+                </div>
+              </>
+            )}
+
+            {homeTab === 'ranking' && (
+              <div className="p-4 space-y-4">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-amber-500" />
+                    <h2 className="font-bold text-stone-700">人気投稿ランキング</h2>
+                  </div>
+                  <button className="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full font-bold flex items-center gap-1 hover:bg-stone-200">
+                    <Filter className="w-3 h-3" /> 絞り込み
+                  </button>
+                </div>
+                {[...posts].sort((a, b) => b.likes - a.likes).slice(0, 5).map((post, index) => renderPostCard(post, index, true))}
+              </div>
+            )}
+
+            {homeTab === 'news' && (
+              <div className="p-4 space-y-4 min-h-[50vh]">
+                <div className="flex items-center gap-2 mb-4">
+                  <Globe className="w-5 h-5 text-blue-500" />
+                  <h2 className="font-bold text-stone-700">農業ニュース・お知らせ</h2>
+                </div>
+                <div className="space-y-3">
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 cursor-pointer hover:shadow-md transition-shadow relative">
+                    <span className="absolute top-4 right-4 text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-sm">重要</span>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-sm">資材情報</span>
+                      <span className="text-xs text-stone-400 mr-10">2026/02/23</span>
+                    </div>
+                    <p className="text-sm font-bold text-stone-800 mt-2">2026年春の新資材特集が公開されました！</p>
+                    <p className="text-xs text-stone-500 mt-1">最新の肥料や防除技術、今季注目の種苗リストをチェックしましょう。</p>
+                  </div>
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 cursor-pointer hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-sm">イベント</span>
+                      <span className="text-xs text-stone-400">2026/02/20</span>
+                    </div>
+                    <p className="text-sm font-bold text-stone-800 mt-2">週末のオンライン就農支援相談会</p>
+                    <p className="text-xs text-stone-500 mt-1">先輩農家さんから直接話が聞けるチャンスです。参加費無料。</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -749,10 +821,16 @@ export default function App() {
             <div className="p-4 bg-white border-b border-stone-100 sticky top-0 z-10 pb-0">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="font-bold text-lg text-stone-800">コミュニティ</h2>
-                <button className="text-emerald-600 text-sm font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
-                  <Plus className="w-4 h-4" />
-                  作成する
-                </button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setCommunityTab('manage')} className={`text-sm font-bold flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${communityTab === 'manage' ? 'bg-stone-600 text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                    <Users className="w-4 h-4" />
+                    管理
+                  </button>
+                  <button className="text-emerald-600 text-sm font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
+                    <Plus className="w-4 h-4" />
+                    作成する
+                  </button>
+                </div>
               </div>
 
               {/* Community Sub Tabs (Scrollable) */}
@@ -772,12 +850,6 @@ export default function App() {
                     <span>{comm.active ? '🔥' : '🌱'}</span> {comm.name}
                   </button>
                 ))}
-                <button
-                  onClick={() => setCommunityTab('manage')}
-                  className={`whitespace-nowrap pb-3 text-sm font-bold text-center border-b-2 transition-all flex items-center gap-1 ${communityTab === 'manage' ? 'border-stone-600 text-stone-700' : 'border-transparent text-stone-400 hover:text-stone-600'}`}
-                >
-                  管理
-                </button>
               </div>
             </div>
 
@@ -1002,17 +1074,17 @@ export default function App() {
                     {/* Category Selection */}
                     <div>
                       <label className="block text-xs font-bold text-stone-500 mb-2 uppercase tracking-wide">1. 資材の種類</label>
-                      <div className="grid grid-cols-4 gap-2">
-                        {['農薬', '肥料', '種苗', 'その他'].map(cat => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => handleCategoryChange(cat)}
-                            className={`py-2 rounded-lg text-xs font-bold transition-colors ${selectedCategory === cat ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white text-stone-600 border border-stone-200'}`}
-                          >
-                            {cat}
-                          </button>
-                        ))}
+                      <div className="relative">
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => handleCategoryChange(e.target.value)}
+                          className="w-full pl-4 pr-10 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm bg-white appearance-none font-bold text-stone-700"
+                        >
+                          {['農薬', '肥料', '種苗', 'その他'].map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
+                        </select>
+                        <ChevronRight className="w-5 h-5 text-stone-400 absolute right-3 top-3.5 pointer-events-none transform rotate-90" />
                       </div>
                     </div>
 
@@ -1020,7 +1092,7 @@ export default function App() {
                     <div className="flex gap-4 animate-pop-in">
                       <div className="flex-1">
                         <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">使用時期（任意）</label>
-                        <input type="text" value={reviewTiming} onChange={(e) => setReviewTiming(e.target.value)} placeholder="例: 定植後、梅雨" className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm" />
+                        <input type="date" value={reviewTiming} onChange={(e) => setReviewTiming(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none shadow-sm text-sm bg-white" />
                       </div>
                       <div className="flex-1">
                         <label className="block text-xs font-bold text-stone-500 mb-1 uppercase tracking-wide">気温（任意）</label>
@@ -1240,6 +1312,41 @@ export default function App() {
                   ></textarea>
                 </div>
 
+                {/* Visibility Settings */}
+                <div className="pt-2 animate-pop-in">
+                  <label className="block text-xs font-bold text-stone-500 mb-2 uppercase tracking-wide">公開範囲</label>
+                  <div className="flex gap-2 mb-4 overflow-x-auto no-scrollbar pb-1">
+                    <button
+                      type="button"
+                      onClick={() => setPostVisibility('public')}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${postVisibility === 'public' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-50'}`}
+                    >
+                      <Globe className="w-3.5 h-3.5" /> 全体公開
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostVisibility('community')}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${postVisibility === 'community' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-50'}`}
+                    >
+                      <Users className="w-3.5 h-3.5" /> 所属コミュニティ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostVisibility('followers')}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${postVisibility === 'followers' ? 'border-emerald-600 bg-emerald-50 text-emerald-700' : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-50'}`}
+                    >
+                      <User className="w-3.5 h-3.5" /> フォロワーのみ
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPostVisibility('draft')}
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all border ${postVisibility === 'draft' ? 'border-stone-600 bg-stone-100 text-stone-700' : 'border-stone-200 bg-white text-stone-500 hover:bg-stone-50'}`}
+                    >
+                      <FileText className="w-3.5 h-3.5" /> 下書きとして保存
+                    </button>
+                  </div>
+                </div>
+
                 {/* Submit Button */}
                 <button
                   type="submit"
@@ -1253,7 +1360,7 @@ export default function App() {
                   className="w-full py-4 rounded-xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 transition-all transform bg-emerald-600 text-white hover:bg-emerald-700 active:translate-y-1 shadow-emerald-200 disabled:bg-stone-300 disabled:text-stone-500 disabled:shadow-none disabled:transform-none disabled:cursor-not-allowed"
                 >
                   <Send className="w-5 h-5" />
-                  記録して共有
+                  {postVisibility === 'draft' ? '下書きに保存' : '記録して共有'}
                 </button>
               </form>
             )}
@@ -1310,6 +1417,12 @@ export default function App() {
                   記録
                 </button>
                 <button
+                  onClick={() => setActiveProfileTab('drafts')}
+                  className={`flex-1 py-2.5 text-sm font-bold text-center rounded-lg transition-all ${activeProfileTab === 'drafts' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
+                >
+                  下書き
+                </button>
+                <button
                   onClick={() => setActiveProfileTab('friends')}
                   className={`flex-1 py-2.5 text-sm font-bold text-center rounded-lg transition-all ${activeProfileTab === 'friends' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}
                 >
@@ -1330,82 +1443,105 @@ export default function App() {
               {/* Posts Tab */}
               {activeProfileTab === 'posts' && (
                 <div className="space-y-3">
-                  {myPosts.length === 0 ? (
-                    <div className="bg-white p-8 rounded-2xl text-center border border-dashed border-stone-300">
-                      <p className="text-stone-500 text-sm mb-4">まだ投稿がありません。</p>
-                      <button onClick={() => setActiveTab('record')} className="text-emerald-600 font-bold text-sm underline">
-                        最初の投稿をする
-                      </button>
-                    </div>
-                  ) : (
-                    myPosts.map((post: any) => (
-                      <div key={`mypage-post-${post.id}`} className="bg-white rounded-xl shadow-sm mb-4 overflow-hidden border border-stone-100 flex flex-col p-4 animate-fade-in group hover:shadow-md transition-shadow relative cursor-pointer" onClick={() => handlePostClick(post)}>
-                        <div className="flex gap-3 relative z-10 w-full mb-3">
-                          <div className="w-[100px] h-[100px] flex-shrink-0 bg-stone-100 rounded-lg overflow-hidden relative">
-                            <img
-                              src={post.imageUrls?.[0] || post.image || "https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?w=200&h=200&fit=crop"}
-                              alt={post.material || post.title || "Post image"}
-                              className="w-full h-full object-cover"
-                            />
-                            {/* Badge: Review or Post */}
-                            <div className="absolute top-1 left-1 bg-black/50 backdrop-blur px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-sm flex items-center gap-1">
-                              {(() => {
-                                const info = getPostTypeInfo(post.type);
-                                const Icon = info.icon;
-                                return (
-                                  <>
-                                    <Icon className={`w-2.5 h-2.5 ${info.color} ${post.type === 'review' ? 'fill-current' : ''}`} />
-                                    {info.label}
-                                  </>
-                                );
-                              })()}
-                            </div>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-base text-stone-800 line-clamp-2 mb-1 leading-tight">
-                              {post.material || post.title || post.content.split('\n')[0]}
-                            </h4>
-                            <p className="text-xs text-stone-500 line-clamp-2 mb-2">{post.content}</p>
-                            {post.type === 'review' ? (
-                              <div className="flex items-center gap-1 text-xs mt-1">
-                                <span className="font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">{post.rating}.0</span>
-                                <div className="flex">
-                                  {[1, 2, 3, 4, 5].map(star => (
-                                    <Star key={star} className={`w - 3 h - 3 ${star <= (post.rating || 0) ? 'text-yellow-400 fill-current' : 'text-stone-300'} `} />
-                                  ))}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="flex gap-1 overflow-hidden mt-1 max-w-full">
-                                {(post.tags || []).slice(0, 2).map((tag: string, i: number) => (
-                                  <span key={i} className="text-[10px] text-stone-400 bg-stone-50 px-1.5 py-0.5 rounded-sm whitespace-nowrap overflow-hidden text-ellipsis flex-shrink max-w-[60px] line-clamp-1 leading-3 flex items-center h-4">#{tag}</span>
-                                ))}
-                                {((post.tags?.length || 0) > 2) && <span className="text-[10px] text-stone-400 px-1 py-0.5 whitespace-nowrap overflow-hidden text-ellipsis flex-shrink flex items-center h-4">+{(post.tags?.length || 0) - 2}</span>}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                  <div className="flex items-center gap-2 mb-4 bg-white p-2 text-stone-700 rounded-xl shadow-sm border border-stone-100">
+                    <Filter className="w-5 h-5 text-stone-400 ml-2" />
+                    <select value={profilePostFilter} onChange={e => setProfilePostFilter(e.target.value)} className="bg-stone-50 border-none text-xs font-bold text-stone-700 outline-none rounded-lg px-2 py-1">
+                      <option value="all">すべて</option>
+                      <option value="photo">写真</option>
+                      <option value="album">アルバム</option>
+                      <option value="review">レビュー</option>
+                      <option value="blog">ブログ</option>
+                      <option value="harvest">収穫</option>
+                    </select>
+                    <div className="flex-1"></div>
+                    <select value={profilePostSort} onChange={e => setProfilePostSort(e.target.value)} className="bg-stone-50 border-none text-xs font-bold text-stone-700 outline-none rounded-lg px-2 py-1 mr-2">
+                      <option value="newest">新しい順</option>
+                      <option value="likes">いいね順</option>
+                    </select>
+                  </div>
 
-                        <div className="flex justify-between items-center mt-1 relative w-full pt-1">
-                          <span className="text-[10px] text-stone-400 w-auto whitespace-nowrap overflow-hidden text-ellipsis flex-1 pr-1">{post.date || post.timestamp}</span>
-                          <div className="flex items-center gap-1 text-stone-500 bg-stone-50 px-2 py-1 rounded-lg flex-shrink-0">
-                            <ThumbsUp className="w-3 h-3" />
-                            <span className="text-xs font-bold">{post.likes}</span>
-                          </div>
+                  {(() => {
+                    let filteredMyPosts = [...myPosts];
+                    if (profilePostFilter !== 'all') {
+                      filteredMyPosts = filteredMyPosts.filter(p => p.type === profilePostFilter);
+                    }
+                    if (profilePostSort === 'likes') {
+                      filteredMyPosts.sort((a, b) => b.likes - a.likes);
+                    } else {
+                      filteredMyPosts.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                    }
+
+                    if (filteredMyPosts.length === 0) {
+                      return (
+                        <div className="bg-white p-8 rounded-2xl text-center border border-dashed border-stone-300">
+                          <p className="text-stone-500 text-sm mb-4">まだ投稿がありません。</p>
+                          <button onClick={() => setActiveTab('record')} className="text-emerald-600 font-bold text-sm underline">
+                            最初の投稿をする
+                          </button>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      );
+                    }
+                    return filteredMyPosts.map((post: any) => renderPostCard(post));
+                  })()}
+                </div>
+              )}
+
+              {/* Drafts Tab */}
+              {activeProfileTab === 'drafts' && (
+                <div className="space-y-3">
+                  <div className="bg-white p-8 rounded-2xl text-center border border-dashed border-stone-300">
+                    <FileText className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                    <p className="text-stone-500 text-sm mb-4">保存された下書きはありません。</p>
+                  </div>
                 </div>
               )}
 
               {/* Friends Tab */}
               {activeProfileTab === 'friends' && (
-                <div className="bg-white p-6 rounded-2xl border border-stone-100 text-center">
-                  <UserPlus className="w-12 h-12 text-emerald-200 mx-auto mb-3" />
-                  <h3 className="font-bold text-stone-700 mb-2">友達機能は準備中</h3>
-                  <p className="text-sm text-stone-500 mb-4">地域や作物が近い農家さんをフォローして、情報交換できるようになります。</p>
-                  <button className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg font-bold text-sm w-full">友達をアプリに招待する</button>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-pink-50 rounded-full flex items-center justify-center">
+                          <Heart className="w-5 h-5 text-pink-500" />
+                        </div>
+                        <span className="font-bold text-xs text-stone-700">いいね一覧</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center">
+                          <MessageCircle className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <span className="font-bold text-xs text-stone-700">コメント管理</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-indigo-50 rounded-full flex items-center justify-center relative">
+                          <MessageSquare className="w-5 h-5 text-indigo-500" />
+                          <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>
+                        </div>
+                        <span className="font-bold text-xs text-stone-700">メッセージ</span>
+                      </div>
+                    </div>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center justify-between cursor-pointer hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center relative">
+                          <UserPlus className="w-5 h-5 text-emerald-500" />
+                          <span className="absolute -top-1 -right-1 flex items-center justify-center w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full border-2 border-white">1</span>
+                        </div>
+                        <span className="font-bold text-xs text-stone-700">フォロー申請</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center mt-4">
+                    <Users className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
+                    <p className="text-sm text-emerald-800 font-bold mb-1">友達をアプリに招待する</p>
+                    <p className="text-[10px] text-emerald-600 mb-3">地域や作物が近い農家さんと情報交換しよう</p>
+                    <button className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm w-full shadow-sm hover:bg-emerald-700 transition-colors">招待リンクをコピー</button>
+                  </div>
                 </div>
               )}
 
@@ -1687,6 +1823,115 @@ export default function App() {
             <span className="text-[11px] font-bold">マイページ</span>
           </button>
         </nav>
+      )}
+
+      {/* Settings Modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+            <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
+              <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
+                <Settings className="w-5 h-5 text-stone-500" />
+                設定・サポート
+              </h2>
+              <button onClick={() => setShowSettingsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
+                <X className="w-5 h-5 text-stone-600" />
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto space-y-4 flex-1">
+              <div className="space-y-2">
+                <h3 className="font-bold text-stone-700 text-sm pl-1">アカウント設定</h3>
+                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    メールアドレスの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    電話番号の変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    パスワードの変更 <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="font-bold text-stone-700 text-sm pl-1">サポート</h3>
+                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden divide-y divide-stone-100 shadow-sm">
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    バグを報告する <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    改善の要望を送る <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                  <button className="w-full text-left px-4 py-3 text-sm font-bold text-stone-700 hover:bg-stone-50 flex justify-between items-center">
+                    ヘルプセンター <ChevronRight className="w-4 h-4 text-stone-400" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-4 pb-8">
+                <button className="w-full py-3 text-sm font-bold text-red-500 bg-red-50 rounded-xl hover:bg-red-100 transition-colors">
+                  ログアウト
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications Modal */}
+      {showNotificationsModal && (
+        <div className="fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-fade-in touch-none">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl w-full max-w-md overflow-hidden shadow-2xl animate-slide-up flex flex-col max-h-[90vh]">
+            <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center sticky top-0 z-10">
+              <h2 className="font-bold text-lg text-stone-800 flex items-center gap-2">
+                <Bell className="w-5 h-5 text-stone-500" />
+                お知らせ
+              </h2>
+              <button onClick={() => setShowNotificationsModal(false)} className="p-2 bg-stone-200 rounded-full hover:bg-stone-300 transition-colors">
+                <X className="w-5 h-5 text-stone-600" />
+              </button>
+            </div>
+            <div className="p-0 overflow-y-auto flex-1 bg-stone-50">
+              <div className="divide-y divide-stone-100">
+                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors relative">
+                  <div className="w-2 h-2 bg-red-500 rounded-full absolute top-5 left-2"></div>
+                  <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 ml-2">
+                    <AlertCircle className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-stone-800 font-bold mb-1 leading-tight">あなたと同じ「トマト」を栽培している農家さんが新しい資材レビューを投稿しました</p>
+                    <p className="text-xs text-stone-500">2時間前</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <UserPlus className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-stone-800 mb-1 leading-tight"><strong>田中ファーム</strong>さんからフォローリクエストが届きました</p>
+                    <div className="flex gap-2 mt-2">
+                      <button className="bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-full">承認する</button>
+                      <button className="bg-stone-200 text-stone-700 text-xs font-bold px-4 py-1.5 rounded-full">削除</button>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-2">昨日</p>
+                  </div>
+                </div>
+
+                <div className="bg-white p-4 flex gap-3 cursor-pointer hover:bg-stone-50 transition-colors">
+                  <div className="w-10 h-10 bg-orange-100 rounded-full flex flex-col items-center justify-center flex-shrink-0">
+                    <FileText className="w-5 h-5 text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-stone-800 mb-1 leading-tight">過去に使用した「ダコニール」に関する新しい知見が追加されました</p>
+                    <p className="text-xs text-stone-500">3日前</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Custom Styles for Animation */}
