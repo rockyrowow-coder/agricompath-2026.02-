@@ -220,8 +220,17 @@ export default function App() {
   const [isCertifiedSaved, setIsCertifiedSaved] = useState(currentUser.isCertified);
 
   // Profile State (remaining from original, certifiedNumber is still here)
-  const [activeProfileTab, setActiveProfileTab] = useState('posts'); // posts, friends, settings
+  const [activeProfileTab, setActiveProfileTab] = useState('posts'); // posts, drafts, friends, settings
   const [certifiedNumber, setCertifiedNumber] = useState('');
+  const [certificationStatus, setCertificationStatus] = useState('none'); // 'none', 'pending', 'approved'
+
+  // Crop Registration State
+  const [myCrops, setMyCrops] = useState<string[]>(currentUser.crops || []);
+  const [cropLastUpdated, setCropLastUpdated] = useState<string | null>(null);
+  const [newCropInput, setNewCropInput] = useState('');
+
+  // Drafts state
+  const [drafts, setDrafts] = useState<any[]>([]);
 
   // Public Profile State
   const [viewedUser, setViewedUser] = useState<any>(null);
@@ -345,10 +354,16 @@ export default function App() {
         community: '未設定'
       };
 
-      setPosts([newPost, ...posts]);
-      setHasPosted(true);
-      setIsSubmitting(false);
-      setShowConfetti(true);
+      if (postVisibility === 'draft') {
+        setDrafts([newPost, ...drafts]);
+        setIsSubmitting(false);
+        setShowConfetti(true);
+      } else {
+        setPosts([newPost, ...posts]);
+        setHasPosted(true);
+        setIsSubmitting(false);
+        setShowConfetti(true);
+      }
 
       // Reset Form
       setMaterialName('');
@@ -363,11 +378,16 @@ export default function App() {
       setReviewTemp('');
       setReviewTarget('');
       setPostText('');
-
+      setPostVisibility('community');
 
       setTimeout(() => {
         setShowConfetti(false);
-        setActiveTab('home');
+        if (postVisibility !== 'draft') {
+          setActiveTab('home');
+        } else {
+          setActiveProfileTab('drafts');
+          setActiveTab('profile');
+        }
       }, 2500);
     }, 1000);
   };
@@ -708,14 +728,14 @@ export default function App() {
       </header>
 
       {/* --- MAIN CONTENT AREA --- */}
-      <main className="flex-1 overflow-y-auto pb-20 scroll-smooth">
+      <main className="flex-1 overflow-y-auto pb-28 scroll-smooth">
 
         {/* TIMELINE VIEW (Home) */}
         {activeTab === 'home' && !selectedPost && (
           <div className="space-y-4">
             {/* Home Sub Tabs */}
-            <div className="px-4 pt-4">
-              <div className="flex bg-stone-100 p-1 rounded-xl">
+            <div className="px-4 pt-4 sticky top-0 z-10 bg-stone-100">
+              <div className="flex bg-white/80 backdrop-blur p-1 rounded-xl shadow-sm border border-stone-100">
                 <button onClick={() => setHomeTab('recommended')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'recommended' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>おすすめ</button>
                 <button onClick={() => setHomeTab('ranking')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'ranking' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ランキング</button>
                 <button onClick={() => setHomeTab('news')} className={`flex-1 py-2 text-sm font-bold text-center rounded-lg transition-all ${homeTab === 'news' ? 'bg-white text-emerald-700 shadow-sm' : 'text-stone-500 hover:text-stone-700'}`}>ニュース</button>
@@ -1489,10 +1509,14 @@ export default function App() {
               {/* Drafts Tab */}
               {activeProfileTab === 'drafts' && (
                 <div className="space-y-3">
-                  <div className="bg-white p-8 rounded-2xl text-center border border-dashed border-stone-300">
-                    <FileText className="w-12 h-12 text-stone-300 mx-auto mb-3" />
-                    <p className="text-stone-500 text-sm mb-4">保存された下書きはありません。</p>
-                  </div>
+                  {drafts.length === 0 ? (
+                    <div className="bg-white p-8 rounded-2xl text-center border border-dashed border-stone-300">
+                      <FileText className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                      <p className="text-stone-500 text-sm mb-4">保存された下書きはありません。</p>
+                    </div>
+                  ) : (
+                    drafts.map((post: any) => renderPostCard(post))
+                  )}
                 </div>
               )}
 
@@ -1547,38 +1571,114 @@ export default function App() {
 
               {/* Settings Tab */}
               {activeProfileTab === 'settings' && (
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <BadgeCheck className="w-5 h-5 text-emerald-600" />
-                    <h3 className="font-bold text-stone-700">認定農業者情報</h3>
-                  </div>
-                  <p className="text-xs text-stone-500 mb-4 leading-relaxed bg-stone-50 p-3 rounded-lg">
-                    認定農業者番号を登録すると、プロフィールに「✅認証バッジ」が付き、レビューの信頼性が大きく向上します。
-                  </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={certifiedNumber}
-                      onChange={(e) => {
-                        setCertifiedNumber(e.target.value);
-                        setIsCertifiedSaved(false);
-                      }}
-                      placeholder="例: 12345678"
-                      className="flex-1 px-3 py-2 rounded-lg border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
-                    />
-                    <button
-                      onClick={() => setIsCertifiedSaved(true)}
-                      disabled={!certifiedNumber}
-                      className={`px - 4 py - 2 rounded - lg font - bold text - sm transition - colors ${certifiedNumber ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-200 text-stone-400'} `}
-                    >
-                      {isCertifiedSaved ? '保存済' : '保存'}
-                    </button>
-                  </div>
-                  {isCertifiedSaved && (
-                    <p className="text-xs text-emerald-600 font-bold mt-2 flex items-center gap-1">
-                      <BadgeCheck className="w-4 h-4" /> 認証バッジが有効になりました
+                <div className="space-y-6">
+                  {/* Crop Registration */}
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Sprout className="w-5 h-5 text-emerald-600" />
+                      <h3 className="font-bold text-stone-700">栽培作物・品種の登録</h3>
+                    </div>
+                    <p className="text-xs text-stone-500 mb-3 leading-relaxed bg-stone-50 p-3 rounded-lg">
+                      あなたが栽培している作物や品種を登録しましょう。一度登録すると<strong>1ヶ月間</strong>は変更できません。
                     </p>
-                  )}
+                    {(() => {
+                      const isLocked = cropLastUpdated && (new Date().getTime() - new Date(cropLastUpdated).getTime()) < 30 * 24 * 60 * 60 * 1000;
+                      const daysLeft = cropLastUpdated ? Math.max(0, 30 - Math.floor((new Date().getTime() - new Date(cropLastUpdated).getTime()) / (24 * 60 * 60 * 1000))) : 0;
+                      return (
+                        <>
+                          <div className="flex flex-wrap gap-2 mb-3">
+                            {myCrops.map((crop, i) => (
+                              <span key={i} className="bg-emerald-50 text-emerald-700 px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 border border-emerald-100">
+                                {crop}
+                                {!isLocked && (
+                                  <button onClick={() => setMyCrops(myCrops.filter((_, idx) => idx !== i))} className="text-emerald-400 hover:text-red-500 ml-1">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                          {isLocked ? (
+                            <div className="flex items-center gap-2 text-xs font-bold text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                              <Lock className="w-4 h-4" />
+                              次の変更まであと{daysLeft}日です
+                            </div>
+                          ) : (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={newCropInput}
+                                onChange={(e) => setNewCropInput(e.target.value)}
+                                placeholder="例： トマト 桃太郎"
+                                className="flex-1 px-3 py-2.5 rounded-lg border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                              />
+                              <button
+                                onClick={() => {
+                                  if (newCropInput.trim()) {
+                                    setMyCrops([...myCrops, newCropInput.trim()]);
+                                    setNewCropInput('');
+                                  }
+                                }}
+                                disabled={!newCropInput.trim()}
+                                className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${newCropInput.trim() ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-200 text-stone-400'}`}
+                              >
+                                追加
+                              </button>
+                            </div>
+                          )}
+                          {!isLocked && myCrops.length > 0 && (
+                            <button
+                              onClick={() => setCropLastUpdated(new Date().toISOString())}
+                              className="mt-3 w-full py-2.5 bg-emerald-600 text-white rounded-lg font-bold text-sm shadow-sm hover:bg-emerald-700 transition-colors"
+                            >
+                              この内容で確定する
+                            </button>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Certification Application */}
+                  <div className="bg-white p-5 rounded-2xl shadow-sm border border-stone-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <BadgeCheck className="w-5 h-5 text-emerald-600" />
+                      <h3 className="font-bold text-stone-700">認定農業者バッジ申請</h3>
+                    </div>
+                    <p className="text-xs text-stone-500 mb-4 leading-relaxed bg-stone-50 p-3 rounded-lg">
+                      認定農業者番号を入力して申請してください。運営による確認後、プロフィールに「✅認証バッジ」が付与されます。
+                    </p>
+                    {certificationStatus === 'approved' ? (
+                      <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                        <BadgeCheck className="w-5 h-5" />
+                        認証済み — バッジが有効です
+                      </div>
+                    ) : certificationStatus === 'pending' ? (
+                      <div className="flex items-center gap-2 text-sm font-bold text-amber-600 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                        <AlertCircle className="w-5 h-5" />
+                        審査中です。確認には数日かかる場合があります。
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={certifiedNumber}
+                          onChange={(e) => setCertifiedNumber(e.target.value)}
+                          placeholder="例: 12345678"
+                          className="flex-1 px-3 py-2.5 rounded-lg border border-stone-200 focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                        />
+                        <button
+                          onClick={() => {
+                            if (certifiedNumber) setCertificationStatus('pending');
+                          }}
+                          disabled={!certifiedNumber}
+                          className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${certifiedNumber ? 'bg-emerald-600 text-white shadow-md' : 'bg-stone-200 text-stone-400'}`}
+                        >
+                          申請する
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1736,17 +1836,16 @@ export default function App() {
 
             {/* Surrounding Buttons (Circular arrangement) */}
             {[
-              { label: 'アルバム', icon: Images, angle: -180, type: 'album' },
-              { label: '資材レビュー', icon: Star, angle: -144, type: 'review' },
-              { label: 'ブログ', icon: PenTool, angle: -108, type: 'blog' },
-              { label: 'つぶやき', icon: MessageSquare, angle: -72, type: 'tweet' },
-              { label: '作業日誌', icon: ClipboardList, angle: -36, type: 'diary' },
-              { label: '収穫記錄', icon: Tractor, angle: 0, type: 'harvest' },
+              { label: 'アルバム', icon: Images, angle: 90, type: 'album' },
+              { label: '資材レビュー', icon: Star, angle: 150, type: 'review' },
+              { label: 'ブログ', icon: PenTool, angle: 210, type: 'blog' },
+              { label: 'つぶやき', icon: MessageSquare, angle: 270, type: 'tweet' },
+              { label: '作業日誌', icon: ClipboardList, angle: 330, type: 'diary' },
+              { label: '収穫記錄', icon: Tractor, angle: 30, type: 'harvest' },
             ].map((item, index) => {
-              const radius = 135; // 半径(px) => distance from center photo button
+              const radius = 130;
               const angleRad = item.angle * (Math.PI / 180);
               const x = Math.cos(angleRad) * radius;
-              // Center Y is 140px. Y decreases as it goes down.
               const y = Math.sin(angleRad) * radius;
               return (
                 <div
@@ -1754,19 +1853,19 @@ export default function App() {
                   className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
                   style={{
                     left: `calc(50% + ${x}px)`,
-                    bottom: `calc(env(safe-area-inset-bottom, 20px) + 140px - ${y}px)`,
-                    transform: 'translate(-50%, 50%)',
-                    animationDelay: `${index * 0.05}s`,
+                    top: `calc(50% - ${y}px)`,
+                    transform: 'translate(-50%, -50%)',
+                    animationDelay: `${index * 0.06}s`,
                     animationFillMode: 'both'
                   }}
                 >
                   <button
                     onClick={() => handleMenuClick(item.type)}
-                    className="w-[68px] h-[68px] bg-white rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(0,0,0,0.15)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105"
+                    className="w-[72px] h-[72px] bg-gradient-to-b from-white to-stone-50 rounded-full flex items-center justify-center shadow-[0_6px_24px_rgba(0,0,0,0.18)] active:scale-90 transition-transform hover:shadow-xl hover:scale-105 border-2 border-white/80"
                   >
-                    <item.icon className="w-7 h-7 text-emerald-600" />
+                    <item.icon className="w-8 h-8 text-emerald-600" />
                   </button>
-                  <span className="text-[12px] font-bold text-white mt-2 drop-shadow-md whitespace-nowrap">{item.label}</span>
+                  <span className="text-[11px] font-bold text-white mt-1.5 drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] whitespace-nowrap">{item.label}</span>
                 </div>
               )
             })}
@@ -1776,51 +1875,49 @@ export default function App() {
 
       {/* --- BOTTOM NAVIGATION --- */}
       {!selectedPost && (
-        <nav className="bg-white border-t border-stone-200 px-2 py-3 flex justify-around items-center z-10 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-white border-t border-stone-200 px-2 pt-2 pb-safe flex justify-around items-end z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]" style={{ minHeight: '70px' }}>
           <button
             onClick={() => setActiveTab('home')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'}`}
+            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'home' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Home className="w-7 h-7 mb-1" />
+            <Home className="w-7 h-7 mb-0.5" />
             <span className="text-[11px] font-bold">ホーム</span>
           </button>
 
           <button
             onClick={() => setActiveTab('community')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'}`}
+            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'community' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Users className="w-7 h-7 mb-1" />
-            <span className="text-[11px] font-bold">コミュニティ</span>
+            <Users className="w-7 h-7 mb-0.5" />
+            <span className="text-[10px] font-bold">コミュニティ</span>
           </button>
 
           {/* Floating Action Button for Record (Post Menu Trigger) */}
-          <div className="relative -top-8 px-2 flex flex-col items-center">
+          <div className="relative -top-5 flex flex-col items-center">
             <button
               id="record-button"
               onClick={() => setShowPostMenu(true)}
-              className="w-[68px] h-[68px] rounded-full shadow-xl flex items-center justify-center border-[6px] border-stone-50 transition-transform active:scale-90 bg-emerald-500 text-white"
+              className="w-[64px] h-[64px] rounded-full shadow-[0_4px_16px_rgba(16,185,129,0.4)] flex items-center justify-center border-4 border-white transition-transform active:scale-90 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white"
             >
               <Plus className="w-8 h-8" />
             </button>
-            <span className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 text-[11px] font-bold transition-colors w-full text-center text-stone-500">
-              記録
-            </span>
+            <span className="text-[10px] font-bold text-stone-500 mt-1">記録</span>
           </div>
 
           <button
             onClick={() => setActiveTab('search')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'}`}
+            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'search' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <Search className="w-7 h-7 mb-1" />
+            <Search className="w-7 h-7 mb-0.5" />
             <span className="text-[11px] font-bold">検索</span>
           </button>
 
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex flex-col items-center p-2 transition-colors ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'}`}
+            className={`flex flex-col items-center py-1.5 px-3 transition-colors min-w-[56px] ${activeTab === 'profile' ? 'text-emerald-600' : 'text-stone-400'}`}
           >
-            <User className="w-7 h-7 mb-1" />
-            <span className="text-[11px] font-bold">マイページ</span>
+            <User className="w-7 h-7 mb-0.5" />
+            <span className="text-[10px] font-bold">マイページ</span>
           </button>
         </nav>
       )}
