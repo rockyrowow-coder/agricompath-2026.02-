@@ -120,8 +120,8 @@ const RECOMMENDED_ITEMS = [
 ];
 
 const COMMUNITIES = [
-  { id: 1, name: '施設園芸 意見交換会', members: 128, active: true },
-  { id: 2, name: '【関東】新規就農者の集い', members: 45, active: false },
+  { id: 1, name: '千葉アクアメロン生産者コミュニティ', members: 128, active: true },
+  { id: 2, name: 'あら川の桃生産者コミュニティ', members: 45, active: false },
   { id: 3, name: 'スマート農業導入事例', members: 312, active: true },
 ];
 
@@ -528,14 +528,12 @@ export default function App() {
   const myPosts = posts.filter(p => p.author.id === currentUser.id);
   // const myTotalLikes = myPosts.reduce((sum, post) => sum + (post.likes || 0), 0); // This was replaced by the user's instruction
 
-  // const getRankInfo = (likes: number) => { // This was replaced by the user's instruction
-  //   if (likes >= 50) return { name: 'ゴールド', iconColor: 'text-yellow-500', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
-  //   if (likes >= 10) return { name: 'シルバー', iconColor: 'text-stone-400', bgColor: 'bg-stone-50', borderColor: 'border-stone-200' };
-  //   return { name: 'ブロンズ', iconColor: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
-  // };
-  // const myRank = getRankInfo(myTotalLikes); // This was replaced by the user's instruction
+  const getRankInfo = (likes: number) => {
+    if (likes >= 50) return { name: 'ゴールド', iconColor: 'text-yellow-500', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
+    if (likes >= 10) return { name: 'シルバー', iconColor: 'text-stone-400', bgColor: 'bg-stone-50', borderColor: 'border-stone-200' };
+    return { name: 'ブロンズ', iconColor: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
+  };
 
-  // Helper for rendering badges
   const renderUserBadge = (isCert: boolean, likes: number) => {
     const rank = getRankInfo(likes);
     return (
@@ -552,7 +550,7 @@ export default function App() {
     const [filterCategory, setFilterCategory] = useState('all');
     const [sortOrder, setSortOrder] = useState('newest');
 
-    let userPosts = posts.filter(p => p.author.id === user.id);
+    let userPosts = posts.filter(p => p.author.name === user.name || p.author.id === user.id);
     if (filterCategory !== 'all') {
       userPosts = userPosts.filter(p => p.type === filterCategory);
     }
@@ -1137,15 +1135,39 @@ export default function App() {
         {/* SEARCH VIEW */}
         {activeTab === 'search' && !selectedPost && (
           <div className="p-4 space-y-4 pb-32">
-            {/* Search Input */}
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-              <input
-                type="text"
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' && searchInput.trim()) {
+            {/* Search Input & Sort/Filter Config */}
+            <div className="flex flex-col gap-2">
+              <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
+                <input
+                  type="text"
+                  value={searchInput}
+                  onChange={e => setSearchInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && searchInput.trim()) {
+                      const q = searchInput.toLowerCase();
+                      const results = posts.filter(p =>
+                        p.content?.toLowerCase().includes(q) ||
+                        p.material?.toLowerCase().includes(q) ||
+                        p.author?.name?.toLowerCase().includes(q) ||
+                        p.tags?.some((t: string) => t.toLowerCase().includes(q)) ||
+                        p.category?.toLowerCase().includes(q) ||
+                        p.type?.toLowerCase().includes(q)
+                      );
+                      setSearchResults(results);
+                      setHasSearched(true);
+                    }
+                  }}
+                  placeholder="投稿・資材・農家を検索..."
+                  className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-stone-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
+                />
+              </div>
+
+              {/* Sort & Filter Configurations */}
+              <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <select value={searchFilter} onChange={e => {
+                  setSearchFilter(e.target.value);
+                  if (hasSearched) {
                     const q = searchInput.toLowerCase();
                     const results = posts.filter(p =>
                       p.content?.toLowerCase().includes(q) ||
@@ -1156,20 +1178,8 @@ export default function App() {
                       p.type?.toLowerCase().includes(q)
                     );
                     setSearchResults(results);
-                    setHasSearched(true);
                   }
-                }}
-                placeholder="投稿・資材・農家を検索..."
-                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-stone-200 bg-white focus:ring-2 focus:ring-emerald-500 outline-none text-sm shadow-sm"
-              />
-            </div>
-
-            {/* Sort & Filter */}
-            {hasSearched && (
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-                <select value={searchFilter} onChange={e => {
-                  setSearchFilter(e.target.value);
-                }} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none">
+                }} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none flex-1 min-w-[100px]">
                   <option value="all">全て</option>
                   <option value="review">レビュー</option>
                   <option value="photo">写真</option>
@@ -1177,18 +1187,22 @@ export default function App() {
                   <option value="diary">日誌</option>
                   <option value="purchase">購入</option>
                 </select>
-                <select value={searchSort} onChange={e => setSearchSort(e.target.value)} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none">
+                <select value={searchSort} onChange={e => setSearchSort(e.target.value)} className="bg-white border border-stone-200 text-xs font-bold rounded-lg px-3 py-2 text-stone-600 outline-none flex-1 min-w-[100px]">
                   <option value="newest">新しい順</option>
                   <option value="oldest">古い順</option>
                   <option value="likes">いいね順</option>
                 </select>
-                <span className="text-xs text-stone-400 font-bold self-center ml-auto whitespace-nowrap">{(() => {
-                  let r = searchResults;
-                  if (searchFilter !== 'all') r = r.filter(p => p.type === searchFilter);
-                  return r.length;
-                })()}件</span>
+                {hasSearched && (
+                  <span className="text-xs text-stone-400 font-bold self-center ml-auto whitespace-nowrap bg-stone-100 px-2 py-1 rounded">
+                    {(() => {
+                      let r = searchResults;
+                      if (searchFilter !== 'all') r = r.filter(p => p.type === searchFilter);
+                      return r.length;
+                    })()}件
+                  </span>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Results */}
             {hasSearched ? (
@@ -1923,6 +1937,17 @@ export default function App() {
                 <div className="space-y-4">
                   {!friendSubView && (
                     <>
+                      <div className="grid grid-cols-2 gap-3 mb-4 border-b border-stone-200 pb-4">
+                        <button onClick={() => setFriendSubView('followings')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95">
+                          <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center"><UserPlus className="w-5 h-5 text-emerald-500" /></div>
+                          <span className="font-bold text-xs text-stone-700">フォロー中 (3)</span>
+                        </button>
+                        <button onClick={() => setFriendSubView('followers')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95">
+                          <div className="w-10 h-10 bg-teal-50 rounded-full flex items-center justify-center"><Users className="w-5 h-5 text-teal-500" /></div>
+                          <span className="font-bold text-xs text-stone-700">フォロワー (0)</span>
+                        </button>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-3">
                         <button onClick={() => setFriendSubView('likes')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95">
                           <div className="w-10 h-10 bg-pink-50 rounded-full flex items-center justify-center"><Heart className="w-5 h-5 text-pink-500" /></div>
@@ -1940,19 +1965,58 @@ export default function App() {
                           <span className="font-bold text-xs text-stone-700">メッセージ</span>
                         </button>
                         <button onClick={() => setFriendSubView('follows')} className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex items-center gap-2 cursor-pointer hover:shadow-md transition-shadow active:scale-95 relative">
-                          <div className="w-10 h-10 bg-emerald-50 rounded-full flex items-center justify-center relative">
-                            <UserPlus className="w-5 h-5 text-emerald-500" />
+                          <div className="w-10 h-10 bg-stone-100 rounded-full flex items-center justify-center relative">
+                            <UserPlus className="w-5 h-5 text-stone-500" />
                             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border-2 border-white">{followRequests.filter(f => f.status === 'pending').length}</span>
                           </div>
                           <span className="font-bold text-xs text-stone-700">フォロー申請</span>
                         </button>
                       </div>
-                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
+                      <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center mt-4">
                         <Users className="w-8 h-8 text-emerald-400 mx-auto mb-2" />
                         <p className="text-sm text-emerald-800 font-bold mb-1">友達をアプリに招待する</p>
                         <button className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-sm w-full shadow-sm">招待リンクをコピー</button>
                       </div>
                     </>
+                  )}
+
+                  {/* Followings Sub-View */}
+                  {friendSubView === 'followings' && (
+                    <div className="space-y-3">
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-700 text-sm mb-2 px-1 flex items-center gap-1">
+                        フォロー中一覧
+                      </h3>
+                      {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
+                        <button key={i} onClick={() => setViewedUser({ name, avatarUrl: `https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=100&auto=format&fit=crop`, isCertified: i === 0, selfPromo: '農業が好きです', location: ['千葉県', '新潟県', '長野県'][i], crops: ['トマト', '水稲', 'レタス'], experience: '専業', posts: posts.slice(0, 3), followersCount: 120, followingCount: 34 })} className="w-full bg-white p-3 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
+                          <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover" alt="" />
+                          <div className="flex-1">
+                            <p className="font-bold text-sm text-stone-800">{name}</p>
+                            <p className="text-[10px] text-stone-500">{['専業 / トマト / 千葉県', '兼業 / 水稲 / 新潟県', '専業 / レタス / 長野県'][i]}</p>
+                          </div>
+                          <button className="bg-stone-100 text-stone-600 text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-stone-200" onClick={e => { e.stopPropagation(); showComingSoon('フォロー解除'); }}>
+                            フォロー中
+                          </button>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Followers Sub-View */}
+                  {friendSubView === 'followers' && (
+                    <div className="space-y-3">
+                      <button onClick={() => setFriendSubView(null)} className="flex items-center gap-1 text-emerald-600 font-bold text-sm mb-3"><ArrowLeft className="w-4 h-4" />戻る</button>
+                      <h3 className="font-bold text-stone-700 text-sm mb-2 px-1 flex items-center gap-1">
+                        フォロワー一覧
+                      </h3>
+                      <div className="bg-white p-6 rounded-xl border border-stone-100 text-center">
+                        <Users className="w-10 h-10 text-stone-200 mx-auto mb-2" />
+                        <p className="text-stone-400 text-xs font-bold leading-relaxed">
+                          役立つ投稿をして<br />
+                          フォロワーを増やしましょう！
+                        </p>
+                      </div>
+                    </div>
                   )}
 
                   {/* Messages Sub-View */}
