@@ -125,6 +125,12 @@ const COMMUNITIES = [
   { id: 3, name: 'スマート農業導入事例', members: 312, active: true },
 ];
 
+const MOCK_FRIENDS = [
+  { name: '田中農園', avatarId: '1535713875002-d1d0cfdfeeab', location: '千葉県', mainCrop: 'トマト', exp: '専業', desc: '専業 / トマト / 千葉県' },
+  { name: '鈴木ファーム', avatarId: '1544005313-94ddf0286df2', location: '新潟県', mainCrop: '水稲', exp: '兼業', desc: '兼業 / 水稲 / 新潟県' },
+  { name: '山田農園', avatarId: '1500648767791-00dcc994a43e', location: '長野県', mainCrop: 'レタス', exp: '専業', desc: '専業 / レタス / 長野県' }
+];
+
 const MOCK_MATERIALS = [
   { id: 1, name: 'ダコニール1000', category: '殺虫剤', rating: 4.5 },
   { id: 2, name: 'スミチオン水和剤', category: '殺菌剤', rating: 4.2 },
@@ -528,12 +534,6 @@ export default function App() {
   const myPosts = posts.filter(p => p.author.id === currentUser.id);
   // const myTotalLikes = myPosts.reduce((sum, post) => sum + (post.likes || 0), 0); // This was replaced by the user's instruction
 
-  const getRankInfo = (likes: number) => {
-    if (likes >= 50) return { name: 'ゴールド', iconColor: 'text-yellow-500', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' };
-    if (likes >= 10) return { name: 'シルバー', iconColor: 'text-stone-400', bgColor: 'bg-stone-50', borderColor: 'border-stone-200' };
-    return { name: 'ブロンズ', iconColor: 'text-amber-700', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' };
-  };
-
   const renderUserBadge = (isCert: boolean, likes: number) => {
     const rank = getRankInfo(likes);
     return (
@@ -720,13 +720,13 @@ export default function App() {
           <div className="flex items-center gap-2 mb-2">
             <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center overflow-hidden cursor-pointer" onClick={(e) => {
               e.stopPropagation();
-              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name), followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
+              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name).length, followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
             }}>
               <img src={post.author.avatarUrl} alt={post.author.name} className="w-full h-full object-cover" />
             </div>
             <span className="text-xs text-stone-600 font-medium cursor-pointer hover:underline" onClick={(e) => {
               e.stopPropagation();
-              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name), followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
+              setViewedUser({ name: post.author.name, avatarUrl: post.author.avatarUrl, isCertified: post.author.isCertified, selfPromo: '', location: '', crops: [], experience: '', posts: posts.filter(p => p.author?.name === post.author.name).length, followersCount: Math.floor(Math.random() * 200), followingCount: Math.floor(Math.random() * 50) });
             }}>{post.author.name}</span>
             {renderUserBadge(post.author.isCertified, post.likes)}
           </div>
@@ -1044,7 +1044,7 @@ export default function App() {
                     { name: '鈴木ファーム', img: '1544005313-94ddf0286df2', loc: '新潟県', crop: '水稲', cert: false },
                     { name: '山田農園', img: '1500648767791-00dcc994a43e', loc: '長野県', crop: 'レタス', cert: false },
                     ].map((farmer, i) => (
-                      <button key={i} onClick={() => setViewedUser({ name: farmer.name, avatarUrl: `https://images.unsplash.com/photo-${farmer.img}?q=80&w=100&auto=format&fit=crop`, isCertified: farmer.cert, selfPromo: farmer.crop + 'を中心に栽培', location: farmer.loc, crops: [farmer.crop], experience: '専業', posts: posts.filter(p => p.author?.name === farmer.name).length > 0 ? posts.filter(p => p.author?.name === farmer.name) : posts.slice(0, 2), followersCount: 80 + i * 40, followingCount: 15 + i * 10 })} className="flex flex-col items-center min-w-[70px] bg-white p-3 rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-shadow active:scale-95">
+                      <button key={i} onClick={() => setViewedUser({ name: farmer.name, avatarUrl: `https://images.unsplash.com/photo-${farmer.img}?q=80&w=100&auto=format&fit=crop`, isCertified: farmer.cert, selfPromo: farmer.crop + 'を中心に栽培', location: farmer.loc, crops: [farmer.crop], experience: '専業', posts: posts.filter(p => p.author?.name === farmer.name).length > 0 ? posts.filter(p => p.author?.name === farmer.name).length : 2, followersCount: 80 + i * 40, followingCount: 15 + i * 10 })} className="flex flex-col items-center min-w-[70px] bg-white p-3 rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-shadow active:scale-95">
                         <img src={`https://images.unsplash.com/photo-${farmer.img}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover mb-1" alt="" />
                         <span className="text-[10px] font-bold text-stone-700 truncate w-full text-center">{farmer.name}</span>
                         <span className="text-[9px] text-stone-400">{farmer.loc}</span>
@@ -1987,12 +1987,23 @@ export default function App() {
                       <h3 className="font-bold text-stone-700 text-sm mb-2 px-1 flex items-center gap-1">
                         フォロー中一覧
                       </h3>
-                      {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
-                        <button key={i} onClick={() => setViewedUser({ name, avatarUrl: `https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=100&auto=format&fit=crop`, isCertified: i === 0, selfPromo: '農業が好きです', location: ['千葉県', '新潟県', '長野県'][i], crops: ['トマト', '水稲', 'レタス'], experience: '専業', posts: posts.slice(0, 3), followersCount: 120, followingCount: 34 })} className="w-full bg-white p-3 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
-                          <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover" alt="" />
+                      {MOCK_FRIENDS.map((friend, i) => (
+                        <button key={i} onClick={() => setViewedUser({
+                          name: friend.name,
+                          avatarUrl: `https://images.unsplash.com/photo-${friend.avatarId}?q=80&w=100&auto=format&fit=crop`,
+                          isCertified: i === 0,
+                          selfPromo: '農業が好きです',
+                          location: friend.location,
+                          crops: [friend.mainCrop],
+                          experience: friend.exp,
+                          posts: 3,
+                          followersCount: 120,
+                          followingCount: 34
+                        })} className="w-full bg-white p-3 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
+                          <img src={`https://images.unsplash.com/photo-${friend.avatarId}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover" alt="" />
                           <div className="flex-1">
-                            <p className="font-bold text-sm text-stone-800">{name}</p>
-                            <p className="text-[10px] text-stone-500">{['専業 / トマト / 千葉県', '兼業 / 水稲 / 新潟県', '専業 / レタス / 長野県'][i]}</p>
+                            <p className="font-bold text-sm text-stone-800">{friend.name}</p>
+                            <p className="text-[10px] text-stone-500">{friend.desc}</p>
                           </div>
                           <button className="bg-stone-100 text-stone-600 text-[10px] font-bold px-3 py-1.5 rounded-full hover:bg-stone-200" onClick={e => { e.stopPropagation(); showComingSoon('フォロー解除'); }}>
                             フォロー中
