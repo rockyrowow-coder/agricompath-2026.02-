@@ -294,6 +294,9 @@ export default function App() {
 
   // UI State for Community
   const [communityTab, setCommunityTab] = useState('timeline'); // 'timeline', 'manage'
+  const [showCreateCommunity, setShowCreateCommunity] = useState(false);
+  const [newCommunityName, setNewCommunityName] = useState('');
+  const [newCommunityDesc, setNewCommunityDesc] = useState('');
   // const [selectedCommunity, setSelectedCommunity] = useState(null);
 
   // My Page State
@@ -1205,33 +1208,10 @@ export default function App() {
                 })()}
               </div>
             ) : (
-              <div className="space-y-4">
-                <h3 className="font-bold text-stone-700 text-sm">人気のタグ</h3>
-                <div className="flex flex-wrap gap-2">
-                  {['#トマト', '#水稲', '#新規就農', '#減農薬', '#有機栽培', '#スマート農業'].map(tag => (
-                    <button key={tag} onClick={() => {
-                      setSearchInput(tag);
-                      const q = tag.toLowerCase();
-                      setSearchResults(posts.filter(p => p.content?.toLowerCase().includes(q) || p.tags?.some((t: string) => t.toLowerCase().includes(q))));
-                      setHasSearched(true);
-                    }} className="px-3 py-2 bg-white border border-stone-200 rounded-full text-xs font-bold text-stone-600 hover:bg-emerald-50 hover:border-emerald-300 transition-colors">
-                      {tag}
-                    </button>
-                  ))}
-                </div>
-                <h3 className="font-bold text-stone-700 text-sm">おすすめの農家</h3>
-                <div className="space-y-2">
-                  {['田中農園', '鈴木ファーム', '山田農園'].map((name, i) => (
-                    <button key={i} onClick={() => setViewedUser({ name, avatarUrl: `https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=100&auto=format&fit=crop`, isCertified: i === 0, selfPromo: '農業が好きです', location: ['千葉県', '新潟県', '長野県'][i], crops: ['トマト', '水稲', 'レタス'], experience: '専業', posts: posts.slice(0, 3), followersCount: 120, followingCount: 34 })} className="w-full bg-white p-3 rounded-xl shadow-sm border border-stone-100 flex items-center gap-3 hover:shadow-md transition-shadow text-left">
-                      <img src={`https://images.unsplash.com/photo-${['1535713875002-d1d0cfdfeeab', '1544005313-94ddf0286df2', '1500648767791-00dcc994a43e'][i]}?q=80&w=60&auto=format&fit=crop`} className="w-12 h-12 rounded-full object-cover" alt="" />
-                      <div>
-                        <p className="font-bold text-sm text-stone-800">{name}</p>
-                        <p className="text-[10px] text-stone-500">{['専業 / トマト / 千葉県', '兼業 / 水稲 / 新潟県', '専業 / レタス / 長野県'][i]}</p>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-stone-300 ml-auto" />
-                    </button>
-                  ))}
-                </div>
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Search className="w-12 h-12 text-stone-200 mb-4" />
+                <p className="text-stone-500 font-bold mb-1">何をお探しですか？</p>
+                <p className="text-stone-400 text-xs">キーワードを入力して、投稿や資材、<br />農家さんを見つけましょう。</p>
               </div>
             )}
           </div>
@@ -1248,7 +1228,7 @@ export default function App() {
                     <Users className="w-4 h-4" />
                     管理
                   </button>
-                  <button className="text-emerald-600 text-sm font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
+                  <button onClick={() => setShowCreateCommunity(true)} className="text-emerald-600 text-sm font-bold flex items-center gap-1 bg-emerald-50 px-3 py-1.5 rounded-full hover:bg-emerald-100 transition-colors">
                     <Plus className="w-4 h-4" />
                     作成する
                   </button>
@@ -2317,10 +2297,10 @@ export default function App() {
             {/* Menu Container */}
             <div className="absolute inset-0">
 
-              {/* Central Button (Photo Post) - CENTER OF RING */}
+              {/* Central Button (Photo Post) - TRUE CENTER */}
               <div
                 className="absolute z-20 flex flex-col items-center justify-center animate-pop-in cursor-pointer"
-                style={{ left: '50%', bottom: '200px', transform: 'translate(-50%, 50%)' }}
+                style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}
                 onClick={() => handleMenuClick('photo')}
               >
                 <button
@@ -2345,7 +2325,7 @@ export default function App() {
                 <span className="text-[10px] font-medium text-white mt-1 opacity-70">閉じる</span>
               </div>
 
-              {/* Surrounding Buttons (5 items, 72° apart) - orbiting around bottom:200px center */}
+              {/* Surrounding Buttons (5 items, 72° apart) - orbiting around top:50% center */}
               {[
                 { label: '資材レビュー', icon: Star, angle: 90, type: 'review' },
                 { label: 'アルバム', icon: Images, angle: 162, type: 'album' },
@@ -2363,8 +2343,8 @@ export default function App() {
                     className="absolute z-10 flex flex-col items-center justify-center animate-pop-in"
                     style={{
                       left: `calc(50% + ${x}px)`,
-                      bottom: `calc(200px + ${y}px)`,
-                      transform: 'translate(-50%, 50%)',
+                      top: `calc(50% - ${y}px)`,
+                      transform: 'translate(-50%, -50%)',
                       animationDelay: `${index * 0.06}s`,
                       animationFillMode: 'both'
                     }}
@@ -2547,6 +2527,65 @@ export default function App() {
           </div>
         )
       }
+
+      {/* CREATE COMMUNITY MODAL */}
+      {showCreateCommunity && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm" onClick={() => setShowCreateCommunity(false)}></div>
+          <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative z-10 shadow-2xl animate-pop-in">
+            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-emerald-600" />
+              新しいコミュニティを作成
+            </h3>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-500 mb-1">コミュニティ名</label>
+                <input
+                  type="text"
+                  value={newCommunityName}
+                  onChange={e => setNewCommunityName(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-emerald-500"
+                  placeholder="例: 有機野菜を育てる会"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-500 mb-1">説明</label>
+                <textarea
+                  value={newCommunityDesc}
+                  onChange={e => setNewCommunityDesc(e.target.value)}
+                  className="w-full p-3 rounded-xl border border-stone-200 outline-none focus:ring-2 focus:ring-emerald-500 resize-none h-24"
+                  placeholder="どんなコミュニティですか？"
+                ></textarea>
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  onClick={() => setShowCreateCommunity(false)}
+                  className="flex-1 py-3 text-stone-600 font-bold bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors"
+                >
+                  キャンセル
+                </button>
+                <button
+                  onClick={() => {
+                    if (newCommunityName.trim()) {
+                      showComingSoon('コミュニティの作成');
+                      setShowCreateCommunity(false);
+                      setNewCommunityName('');
+                      setNewCommunityDesc('');
+                    }
+                  }}
+                  className={`flex-1 py-3 text-white font-bold rounded-xl transition-colors ${newCommunityName.trim() ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-300'}`}
+                  disabled={!newCommunityName.trim()}
+                >
+                  作成する
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Toast Notification for Coming Soon */}
       {toastMessage && (
